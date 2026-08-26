@@ -6,6 +6,11 @@
 우리 백엔드는 LLM 을 **직접 호출하지 않습니다.** 이 계약만 지키면
 모델이 Claude든 GPT든, Bedrock이든 상관하지 않습니다.
 
+> ✅ **이 계약의 구현이 이제 저장소 안에 있습니다.** [`infra/llm/`](../infra/llm/) —
+> Bedrock(Claude) 을 API Gateway REST API 뒤에 두는 Lambda 입니다.
+> 배포는 `scripts/deploy_llm.sh`, 자세한 건 [DEPLOY.md](./DEPLOY.md).
+> 다른 구현으로 갈아끼워도 됩니다. 백엔드는 주소와 키만 봅니다.
+
 ---
 
 ## 1. 우리가 보내는 것 (Request)
@@ -172,3 +177,21 @@ LLM_PROVIDER=mock
 - [ ] CORS 는 신경 안 써도 됩니다 — 브라우저가 아니라 **우리 서버가 호출**합니다
 - [ ] 타임아웃은 30초 기준입니다. 더 필요하면 알려주세요 (`LLM_TIMEOUT_SECONDS`)
 - [ ] 응답 예시 1건을 위 형식대로 보내주시면 바로 붙여보겠습니다
+
+---
+
+## 6. 저장소 안의 기본 구현 (`infra/llm/`)
+
+| 파일 | 내용 |
+|---|---|
+| `infra/llm/handler.py` | 요청 JSON → 프롬프트 → Bedrock 호출 → 계약 JSON |
+| `infra/llm/schema.py` | 응답 JSON 스키마. 2절 표와 같아야 한다 |
+| `infra/llm-template.yaml` | Lambda + API Gateway REST API + API key + 사용량 계획 |
+
+**Bedrock 에서 확인된 제약** (2026-08 기준, ap-northeast-2):
+
+- `output_config.format`(구조화 출력)과 `tools[].strict` 는 **둘 다 400 으로 거부**된다.
+  그래서 스키마는 *도구 하나를 강제로 쓰게 하는* 방식(`tool_choice`)으로 지킨다.
+  최종 검증은 백엔드의 `AnalysisBody` 가 한다.
+- on-demand 모델 ID(`anthropic.claude-opus-5`)는 거부된다. **추론 프로파일 ID**(`global.` 접두사)를 써야 한다.
+- `output_config.effort` 는 동작한다. 지연 시간을 줄이는 주 레버다.

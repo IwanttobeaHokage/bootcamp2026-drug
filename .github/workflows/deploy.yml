@@ -72,8 +72,10 @@ jobs:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
           # 없으면 SAM 이 관리 버킷을 직접 만든다(배포 Role 에 권한이 더 필요).
           SAM_ARTIFACT_BUCKET: ${{ secrets.SAM_ARTIFACT_BUCKET }}
-          # LLM 연결 정보. 없으면 mock 으로 뜬다(앱은 그대로 동작).
-          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'mock' }}
-          LLM_API_BASE_URL: ${{ secrets.LLM_API_BASE_URL }}
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          # LLM 스택(Bedrock + API Gateway)도 같이 배포한다.
+          # 주소와 API 키는 배포 직후 스택 출력에서 읽어 백엔드에 넘긴다 — 시크릿 불필요.
+          # 끄려면 repository variable DEPLOY_LLM=no (백엔드가 mock 으로 뜬다).
+          DEPLOY_LLM: ${{ vars.DEPLOY_LLM || 'yes' }}
+          BEDROCK_MODEL_ID: ${{ vars.BEDROCK_MODEL_ID }}
+          LLM_EFFORT: ${{ vars.LLM_EFFORT }}
         run: scripts/deploy_all.sh

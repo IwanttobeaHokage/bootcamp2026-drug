@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: bootcamp2026 LLM (Bedrock Claude behind API Gateway REST API)
+
+# 이 스택이 docs/LLM_CONTRACT.md 의 "AWS 담당자" 쪽 구현이다.
+# 백엔드는 여기를 LLM_PROVIDER=http 로 부른다. 배포: scripts/deploy_llm.sh
+
+Parameters:
+  ModelId:
+    Type: String
+    Default: global.anthropic.claude-sonnet-5
+    Description: >-
+      Bedrock 추론 프로파일 ID. on-demand 모델 ID 는 거부되므로 global. 접두사가 필요하다.
+      Opus 5(global.anthropic.claude-opus-5)는 응답이 24~26초라 API Gateway 29초 한도에
+      걸릴 수 있다. 한도 상향이 승인되면 바꾼다.
+  Effort:
+    Type: String
+    Default: low
+    AllowedValues: [low, medium, high]
+    Description: 높일수록 답이 꼼꼼해지고 느려진다.
+  MaxTokens:
+    Type: String
+    Default: "8000"
+  IntegrationTimeoutMillis:
+    Type: Number
+    Default: 29000
+    MinValue: 50
+    MaxValue: 120000
+    Description: >-
+      기본 한도는 29000ms. 서비스 쿼터(L-E5AE38E3) 상향이 승인된 뒤에만 더 큰 값을 쓸 수 있다.
+
+Globals:
+  Function:
+    Runtime: python3.11
+    Architectures: [x86_64]
+
+Resources:
+  LlmApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      # 백엔드가 보내는 x-api-key 를 API Gateway 가 직접 검증한다.
+      Auth:
+        ApiKeyRequired: true
+        UsagePlan:
+          CreateUsagePlan: PER_API
+          Description: bootcamp2026 백엔드 전용
+          Throttle:
+            BurstLimit: 10
+            RateLimit: 5
+          Quota:
+            Limit: 2000
+            Period: DAY
+
+  LlmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: llm/
+      Handler: handler.handler
+      Description: 영양제 분석 본문을 Bedrock 으로 생성
+      MemorySize: 512
+      # API Gateway 가 먼저 끊더라도 Lambda 는 여유를 둔다(쿼터 상향 대비).
+      Timeout: 120
+      Environment:
+        Variables:
+          BEDROCK_MODEL_ID: !Ref ModelId
+          BEDROCK_REGION: !Ref AWS::Region
+          LLM_EFFORT: !Ref Effort
+          LLM_MAX_TOKENS: !Ref MaxTokens
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              # 추론 프로파일과 그 프로파일이 라우팅하는 기반 모델 양쪽이 필요하다.
+              Resource:
+                - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*"
+                - "arn:aws:bedrock:*::foundation-model/*"
+      Events:
+        Analyze:
+          Type: Api
+          Properties:
+            RestApiId: !Ref LlmApi
+            Path: /analyze
+            Method: post
+            TimeoutInMillis: !Ref IntegrationTimeoutMillis
+
+  # 건강정보는 로그에 남기지 않는다. 실패 종류만 기록한다.
+  LlmLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LlmFunction}"
+      RetentionInDays: 14
+
+Outputs:
+  LlmApiBaseUrl:
+    Description: 백엔드의 LLM_API_BASE_URL 에 넣을 값 (LLM_API_PATH=/analyze)
+    Value: !Sub "https://${LlmApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+  ApiKeyId:
+    Description: 실제 키 값은 출력하지 않는다. aws apigateway get-api-key 로 조회한다.
+    Value: !Ref LlmApiApiKey

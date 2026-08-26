@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 # 검사할 곳. 여기 없는 폴더는 보지 않는다(문서에는 금지어가 예시로 들어있으므로).
-SCAN_DIRS = ["backend/app", "backend/tests", "frontend/src"]
+SCAN_DIRS = ["backend/app", "backend/tests", "frontend/src", "infra/llm"]
 SCAN_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx"}
 
 ESCAPE_HATCH = "glossary-ok"
@@ -36,7 +36,8 @@ BANNED = [
 ]
 
 # 코드가 있어도 되는 곳. 이 밖에 소스 파일이 있으면 잘못 놓인 것이다.
-ALLOWED_CODE_PREFIXES = ("backend/", "frontend/", "scripts/")
+# infra/ 는 배포 대상(IaC + Bedrock Lambda)만 둔다. 우리 서비스 로직은 여기 두지 않는다.
+ALLOWED_CODE_PREFIXES = ("backend/", "frontend/", "scripts/", "infra/")
 
 
 def iter_source_files():

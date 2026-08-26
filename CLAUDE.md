@@ -61,11 +61,17 @@ docs/              문서
 - import 는 `@/` 별칭을 씁니다: `import type { Supplement } from "@/types/analysis"`
   (`tsconfig.json` 의 `paths` 와 `vite.config.ts` 의 `resolve.alias` 가 짝입니다. 한쪽만 고치면 빌드가 깨집니다.)
 
-## 5. LLM 호출 코드를 추가하지 마세요
+## 5. LLM 호출 코드는 `infra/llm/` 에만
 
-LLM 은 **외부 AWS(다른 담당자)** 에 있습니다. 이 저장소에는 모델 호출 코드가 없습니다.
-연결은 `backend/app/services/llm/` 의 provider 구조로만 합니다.
-자세한 계약은 [docs/LLM_CONTRACT.md](./docs/LLM_CONTRACT.md).
+**`backend/` 와 `frontend/` 에는 모델 호출 코드를 두지 않습니다.**
+백엔드는 `backend/app/services/llm/` 의 provider 구조로 **HTTP 호출만** 합니다.
+
+실제 Bedrock 호출은 별도 배포 단위인 [`infra/llm/`](./infra/llm/) 에 있습니다.
+이건 docs/LLM_CONTRACT.md 계약의 "AWS 담당자" 쪽 구현이며, 우리 API 와 다른 스택으로 뜹니다.
+
+- 모델·프롬프트를 고칠 일 → `infra/llm/`
+- 응답을 화면에 쓰는 일 → `backend/` / `frontend/`
+- 두 쪽 필드 이름은 [docs/LLM_CONTRACT.md](./docs/LLM_CONTRACT.md) 와 항상 같아야 합니다.
 
 ## 6. 의료 도메인 안전 규칙
 
