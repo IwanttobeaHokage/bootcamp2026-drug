@@ -5,53 +5,44 @@
  */
 
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-muted: #f1f3f6;
-  --border: #dfe3e8;
-  --text: #1b1f24;
-  --text-muted: #5b6572;
+  /* 흰색과 밝은 연두, 두 색만 쓴다.
+     글자색은 가독성 때문에 어두운 회색을 쓰고, 위험도 '높음' 만 예외로 빨강을 쓴다
+     (docs/TECH_SPEC.md 8절: high 는 눈에 띄어야 한다). */
+  --white: #ffffff;
+  --lime: #7ac143;
+  --lime-strong: #5fa432;
+  --lime-soft: #f0f9e6;
+  --lime-line: #d6ebbe;
 
-  --accent: #2f6f4f;
-  --accent-soft: #e7f2eb;
+  --bg: var(--white);
+  --surface: var(--white);
+  --surface-muted: var(--lime-soft);
+  --border: var(--lime-line);
+  --text: #212a1b;
+  --text-muted: #6a7562;
 
-  --risk-high: #b3261e;
-  --risk-high-soft: #fdecea;
-  --risk-moderate: #9a6400;
-  --risk-moderate-soft: #fdf3e2;
-  --risk-low: #37618e;
-  --risk-low-soft: #ebf2fa;
+  --accent: var(--lime);
+  --accent-strong: var(--lime-strong);
+  --accent-soft: var(--lime-soft);
+  --accent-contrast: var(--white);
 
-  --radius: 10px;
-  --radius-sm: 6px;
+  /* 위험도: 높음만 빨강. 나머지는 연두/회색 계열로 톤을 맞춘다. */
+  --risk-high: #c2352b;
+  --risk-high-soft: #fdeceb;
+  --risk-moderate: #7a6a2e;
+  --risk-moderate-soft: #faf6e6;
+  --risk-low: var(--lime-strong);
+  --risk-low-soft: var(--lime-soft);
+
+  --radius: 22px;
+  --radius-sm: 16px;
+  --radius-pill: 999px;
   --gap: 16px;
-  --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 4px 12px rgb(16 24 40 / 4%);
+  --shadow: 0 1px 2px rgb(90 130 60 / 8%), 0 8px 20px rgb(90 130 60 / 8%);
 
-  --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system,
-    "Segoe UI", sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #14171a;
-    --surface: #1c2024;
-    --surface-muted: #23282d;
-    --border: #333a41;
-    --text: #e8eaed;
-    --text-muted: #a2acb8;
-
-    --accent: #7fc9a2;
-    --accent-soft: #1e2f27;
-
-    --risk-high: #f2b8b5;
-    --risk-high-soft: #33201f;
-    --risk-moderate: #f0c479;
-    --risk-moderate-soft: #322a1d;
-    --risk-low: #a8c7ea;
-    --risk-low-soft: #1e2732;
-
-    --shadow: 0 1px 2px rgb(0 0 0 / 40%);
-  }
+  --font:
+    "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
 }
 
 * {
@@ -190,17 +181,27 @@ button:focus-visible {
 
 button {
   font: inherit;
-  border-radius: var(--radius-sm);
+  /* 알약처럼 완전히 둥근 버튼 */
+  border-radius: var(--radius-pill);
   cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .btn-add {
   width: 100%;
   padding: 10px;
-  border: 1px dashed var(--border);
+  border: 1.5px dashed var(--accent);
   background: transparent;
-  color: var(--accent);
-  font-weight: 600;
+  color: var(--accent-strong);
+  font-weight: 700;
 }
 
 .btn-add:hover {
@@ -230,20 +231,19 @@ button {
   padding: 13px;
   border: none;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
   font-size: 1rem;
   font-weight: 700;
+  box-shadow: 0 2px 8px rgb(122 193 67 / 35%);
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: var(--accent-strong);
 }
 
 .btn-submit:disabled {
   opacity: 0.6;
   cursor: progress;
-}
-
-@media (prefers-color-scheme: dark) {
-  .btn-submit {
-    color: #10231a;
-  }
 }
 
 /* ---------- 결과 ---------- */
@@ -448,4 +448,236 @@ button {
   background: var(--surface-muted);
   color: var(--text-muted);
   font-size: 0.875rem;
+}
+
+/* ---------- 단계 표시 ---------- */
+
+.steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.steps__item {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+/* 단계 사이를 잇는 선. 지나온 구간은 연두로 채운다. */
+.steps__item:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  right: 50%;
+  left: -50%;
+  height: 2px;
+  background: var(--border);
+}
+
+.steps__item[data-state="done"]::before,
+.steps__item[data-state="current"]::before {
+  background: var(--lime);
+}
+
+.steps__dot {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--white);
+  color: var(--text-muted);
+  font-weight: 800;
+  font-size: 0.95rem;
+  z-index: 1;
+}
+
+.steps__item[data-state="current"] .steps__dot {
+  border-color: var(--lime);
+  background: var(--lime);
+  color: var(--white);
+  box-shadow: 0 0 0 4px var(--lime-soft);
+}
+
+.steps__item[data-state="done"] .steps__dot {
+  border-color: var(--lime);
+  background: var(--lime-soft);
+  color: var(--lime-strong);
+}
+
+.steps__dot:disabled {
+  cursor: default;
+}
+
+.steps__label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.steps__item[data-state="current"] .steps__label {
+  color: var(--lime-strong);
+}
+
+/* ---------- 단계 이동 버튼 ---------- */
+
+.wizard-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.wizard-nav .btn-submit {
+  flex: 1;
+}
+
+.btn-ghost {
+  padding: 13px 26px;
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--lime);
+  color: var(--lime-strong);
+}
+
+/* 영양제 이름처럼 한 줄을 다 쓰는 입력칸 */
+.field--wide {
+  grid-column: 1 / -1;
+}
+
+/* ---------- 분석 중 화면 ---------- */
+
+.analyzing {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(255 255 255 / 88%);
+  backdrop-filter: blur(3px);
+}
+
+.analyzing__card {
+  width: 100%;
+  max-width: 360px;
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+/* 알약이 굴러가는 느낌의 표시 */
+.analyzing__pill {
+  width: 56px;
+  height: 26px;
+  margin: 0 auto 18px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--lime) 50%, var(--lime-soft) 50%);
+  animation: pill-spin 1.1s linear infinite;
+}
+
+@keyframes pill-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.analyzing__now {
+  margin: 0 0 18px;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--lime-strong);
+}
+
+.analyzing__list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  text-align: left;
+}
+
+.analyzing__step {
+  display: flex;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.analyzing__step[data-state="done"] {
+  color: var(--lime-strong);
+}
+
+.analyzing__step[data-state="current"] {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.analyzing__step[data-state="todo"] {
+  opacity: 0.45;
+}
+
+.analyzing__mark {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.analyzing__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analyzing__pill {
+    animation: none;
+  }
+}
+
+/* ---------- 예시 채우기 (시연용) ---------- */
+
+.card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.card__top .card__hint {
+  margin: 0;
+  flex: 1;
+}
+
+.btn-demo {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: 1.5px solid var(--lime);
+  background: var(--lime-soft);
+  color: var(--lime-strong);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.btn-demo:hover {
+  background: var(--lime);
+  color: var(--white);
 }

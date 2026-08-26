@@ -1,3 +1,11 @@
+/**
+ * 입력 단계(내 정보 / 영양제 / 복용 약)만 담당한다.
+ *
+ * 단계 상태는 AnalysisPage 가 들고 있다. 결과가 4번째 단계로 붙기 때문에
+ * 폼 혼자서는 전체 흐름을 알 수 없다.
+ * 각 단계는 다음으로 넘어갈 때 검증하고, 마지막 입력 단계에서만 제출된다.
+ */
+
 import { useState, type FormEvent } from "react";
 import {
   CFU_UNITS,
@@ -14,6 +22,10 @@ import type {
   Supplement,
   TimeSlot,
 } from "@/types/analysis";
+
+/** 입력 단계 이름. 결과 단계는 AnalysisPage 가 뒤에 붙인다. */
+export const INPUT_STEPS = ["내 정보", "영양제", "복용 약"];
+const LAST_INPUT_STEP = INPUT_STEPS.length - 1;
 
 const DEFAULT_TIME: TimeSlot = "morning_after_meal";
 
@@ -33,12 +45,43 @@ const createSupplement = (): Supplement => ({
 const resizeIntakeTimes = (times: TimeSlot[], frequency: number): TimeSlot[] =>
   Array.from({ length: frequency }, (_, i) => times[i] ?? DEFAULT_TIME);
 
+/**
+ * 시연용 예시 값. 권장량이 아니라 화면을 빨리 채워보기 위한 것이다.
+ * 비타민 D + 와파린 은 실제로 상호작용 주의점이 뜨는 조합이라 골랐다.
+ */
+const DEMO_SUPPLEMENTS: Supplement[] = [
+  {
+    supplementName: "비타민 D 1000IU",
+    nutrient: "비타민 D",
+    doseAmount: 1000,
+    doseUnit: "iu",
+    doseFrequency: 1,
+    intakeTimes: ["morning_after_meal"],
+  },
+  {
+    supplementName: "오메가3 1000mg",
+    nutrient: "오메가3",
+    doseAmount: 1000,
+    doseUnit: "mg",
+    doseFrequency: 2,
+    intakeTimes: ["morning_after_meal", "evening_after_meal"],
+  },
+];
+
+const DEMO_MEDICATIONS: Medication[] = [
+  { medicationName: "와파린", ingredient: "와파린나트륨", intakeTimes: [] },
+];
+
 interface Props {
+  step: number;
   isLoading: boolean;
+  onStepChange: (step: number) => void;
   onSubmit: (request: AnalysisRequest) => void;
 }
 
-export function SupplementForm({ isLoading, onSubmit }: Props) {
+export function SupplementForm({ step, isLoading, onStepChange, onSubmit }: Props) {
+  const [stepError, setStepError] = useState<string | null>(null);
+
   const [age, setAge] = useState(30);
   const [sex, setSex] = useState<Sex>("female");
   const [weightKg, setWeightKg] = useState(60);
@@ -75,8 +118,55 @@ export function SupplementForm({ isLoading, onSubmit }: Props) {
     setMedications((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   };
 
+  /** 통과하면 null, 막히면 사용자에게 보여줄 문구를 돌려준다. */
+  const validateStep = (index: number): string | null => {
+    if (index === 0) {
+      if (!Number.isFinite(age) || age < 0 || age > 120) {
+        return "나이를 0~120 사이로 입력해 주세요.";
+      }
+      if (!Number.isFinite(weightKg) || weightKg <= 0) return "체중을 입력해 주세요.";
+      return null;
+    }
+    if (index === 1) {
+      const blank = supplements.findIndex((item) => item.supplementName.trim() === "");
+      if (blank >= 0) return `영양제 ${blank + 1}의 이름을 입력해 주세요.`;
+      const badDose = supplements.findIndex((item) => !(item.doseAmount > 0));
+      if (badDose >= 0) return `영양제 ${badDose + 1}의 1회 섭취량을 0보다 크게 입력해 주세요.`;
+      return null;
+    }
+    return null;
+  };
+
+  const goNext = () => {
+    const message = validateStep(step);
+    if (message) {
+      setStepError(message);
+      return;
+    }
+    setStepError(null);
+    onStepChange(Math.min(step + 1, LAST_INPUT_STEP));
+  };
+
+  const goPrev = () => {
+    setStepError(null);
+    onStepChange(Math.max(step - 1, 0));
+  };
+
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    // 마지막 입력 단계가 아니면 Enter 를 눌러도 제출하지 않고 다음으로만 간다.
+    if (step !== LAST_INPUT_STEP) {
+      goNext();
+      return;
+    }
+    for (let i = 0; i <= LAST_INPUT_STEP; i += 1) {
+      const message = validateStep(i);
+      if (message) {
+        onStepChange(i);
+        setStepError(message);
+        return;
+      }
+    }
     onSubmit({
       userProfile: { age, sex, weightKg },
       supplements,
@@ -87,253 +177,311 @@ export function SupplementForm({ isLoading, onSubmit }: Props) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <fieldset className="card">
-        <legend className="card__legend">내 정보</legend>
-        <div className="field-grid">
-          <div className="field">
-            <label className="field__label" htmlFor="profile-age">
-              나이
-            </label>
-            <input
-              id="profile-age"
-              type="number"
-              min={0}
-              max={120}
-              value={age}
-              onChange={(e) => setAge(Number(e.target.value))}
-              required
-            />
-          </div>
-          <div className="field">
-            <label className="field__label" htmlFor="profile-sex">
-              성별
-            </label>
-            <select
-              id="profile-sex"
-              value={sex}
-              onChange={(e) => setSex(e.target.value as Sex)}
-            >
-              <option value="female">여성</option>
-              <option value="male">남성</option>
-              <option value="other">기타</option>
-            </select>
-          </div>
-          <div className="field">
-            <label className="field__label" htmlFor="profile-weightKg">
-              체중 (kg)
-            </label>
-            <input
-              id="profile-weightKg"
-              type="number"
-              min={0}
-              step={0.1}
-              value={weightKg}
-              onChange={(e) => setWeightKg(Number(e.target.value))}
-              required
-            />
-          </div>
-        </div>
-      </fieldset>
-
-      <fieldset className="card">
-        <legend className="card__legend">먹고 있는 영양제</legend>
-        <p className="card__hint">최소 1개, 최대 20개까지 입력할 수 있습니다.</p>
-
-        {supplements.map((item, index) => (
-          <div className="row" key={index}>
-            <div className="row__head">
-              <span className="row__index">영양제 {index + 1}</span>
-              <button
-                type="button"
-                className="btn-remove"
-                onClick={() => removeSupplement(index)}
-                disabled={supplements.length <= 1}
-                aria-label={`영양제 ${index + 1} 삭제`}
-              >
-                삭제
-              </button>
+      {step === 0 && (
+        <fieldset className="card">
+          <legend className="card__legend">내 정보</legend>
+          <p className="card__hint">나이·성별·체중에 따라 권장 섭취량이 달라집니다.</p>
+          <div className="field-grid">
+            <div className="field">
+              <label className="field__label" htmlFor="profile-age">
+                나이
+              </label>
+              <input
+                id="profile-age"
+                type="number"
+                min={0}
+                max={120}
+                value={age}
+                onChange={(e) => setAge(Number(e.target.value))}
+                required
+              />
             </div>
+            <div className="field">
+              <label className="field__label" htmlFor="profile-sex">
+                성별
+              </label>
+              <select id="profile-sex" value={sex} onChange={(e) => setSex(e.target.value as Sex)}>
+                <option value="female">여성</option>
+                <option value="male">남성</option>
+                <option value="other">기타</option>
+              </select>
+            </div>
+            <div className="field">
+              <label className="field__label" htmlFor="profile-weightKg">
+                체중 (kg)
+              </label>
+              <input
+                id="profile-weightKg"
+                type="number"
+                min={0}
+                step={0.1}
+                value={weightKg}
+                onChange={(e) => setWeightKg(Number(e.target.value))}
+                required
+              />
+            </div>
+          </div>
+        </fieldset>
+      )}
 
-            <div className="field-grid">
-              <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <label className="field__label" htmlFor={`supplement-supplementName-${index}`}>
-                  영양제 이름
-                </label>
-                <input
-                  id={`supplement-supplementName-${index}`}
-                  placeholder="예: 비타민 D 1000IU"
-                  value={item.supplementName}
-                  onChange={(e) => updateSupplement(index, { supplementName: e.target.value })}
-                  required
-                />
-              </div>
+      {step === 1 && (
+        <fieldset className="card">
+          <legend className="card__legend">먹고 있는 영양제</legend>
+          <div className="card__top">
+            <p className="card__hint">최소 1개, 최대 20개까지 입력할 수 있습니다.</p>
+            <button
+              type="button"
+              className="btn-demo"
+              onClick={() => {
+                setStepError(null);
+                setSupplements(DEMO_SUPPLEMENTS.map((item) => ({ ...item })));
+              }}
+            >
+              예시로 채우기
+            </button>
+          </div>
 
-              <div className="field">
-                <label className="field__label" htmlFor={`supplement-nutrient-${index}`}>
-                  함유 영양소 (선택)
-                </label>
-                <input
-                  id={`supplement-nutrient-${index}`}
-                  placeholder="예: 비타민 D"
-                  value={item.nutrient ?? ""}
-                  onChange={(e) => updateSupplement(index, { nutrient: e.target.value })}
-                />
-              </div>
-
-              <div className="field">
-                <label className="field__label" htmlFor={`supplement-doseAmount-${index}`}>
-                  1회 섭취량
-                </label>
-                <input
-                  id={`supplement-doseAmount-${index}`}
-                  type="number"
-                  min={0.01}
-                  step={0.01}
-                  required
-                  value={item.doseAmount}
-                  onChange={(e) => updateSupplement(index, { doseAmount: Number(e.target.value) })}
-                />
-              </div>
-
-              <div className="field">
-                <label className="field__label" htmlFor={`supplement-doseUnit-${index}`}>
-                  단위
-                </label>
-                <select
-                  id={`supplement-doseUnit-${index}`}
-                  value={item.doseUnit}
-                  onChange={(e) => updateSupplement(index, { doseUnit: e.target.value as DoseUnit })}
+          {supplements.map((item, index) => (
+            <div className="row" key={index}>
+              <div className="row__head">
+                <span className="row__index">영양제 {index + 1}</span>
+                <button
+                  type="button"
+                  className="btn-remove"
+                  onClick={() => removeSupplement(index)}
+                  disabled={supplements.length <= 1}
+                  aria-label={`영양제 ${index + 1} 삭제`}
                 >
-                  {DOSE_UNITS.map((unit) => (
-                    <option key={unit} value={unit}>
-                      {DOSE_UNIT_LABEL[unit]}
-                    </option>
-                  ))}
-                </select>
-                {CFU_UNITS.includes(item.doseUnit) && (
-                  <p className="field__hint">
-                    유산균은 무게보다 균 수가 기준입니다. 제품에 “100억 CFU” 로 적혀 있으면 100 + 억 CFU
-                    로 입력하세요. (1포 ≈ 1.5g, 1캡슐 ≈ 400~500mg 은 대부분 부형제입니다)
-                  </p>
-                )}
+                  삭제
+                </button>
               </div>
 
-              <div className="field">
-                <label className="field__label" htmlFor={`supplement-doseFrequency-${index}`}>
-                  1일 횟수
-                </label>
-                <input
-                  id={`supplement-doseFrequency-${index}`}
-                  type="number"
-                  min={1}
-                  value={item.doseFrequency}
-                  onChange={(e) =>
-                    updateSupplement(index, { doseFrequency: Number(e.target.value) })
-                  }
-                />
-              </div>
+              <div className="field-grid">
+                <div className="field field--wide">
+                  <label className="field__label" htmlFor={`supplement-supplementName-${index}`}>
+                    영양제 이름
+                  </label>
+                  <input
+                    id={`supplement-supplementName-${index}`}
+                    placeholder="예: 비타민 D 1000IU"
+                    value={item.supplementName}
+                    onChange={(e) => updateSupplement(index, { supplementName: e.target.value })}
+                    required
+                  />
+                </div>
 
-              <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <span className="field__label">섭취 시각 ({item.doseFrequency}회)</span>
-                <div className="time-grid">
-                  {item.intakeTimes.map((slot, slotIndex) => (
-                    <div className="field" key={slotIndex}>
-                      <label
-                        className="field__sublabel"
-                        htmlFor={`supplement-intakeTimes-${index}-${slotIndex}`}
-                      >
-                        {slotIndex + 1}회차
-                      </label>
-                      <select
-                        id={`supplement-intakeTimes-${index}-${slotIndex}`}
-                        value={slot}
-                        onChange={(e) =>
-                          updateIntakeTime(index, slotIndex, e.target.value as TimeSlot)
-                        }
-                      >
-                        {TIME_SLOTS.map((value) => (
-                          <option key={value} value={value}>
-                            {TIME_SLOT_LABEL[value]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
+                <div className="field">
+                  <label className="field__label" htmlFor={`supplement-nutrient-${index}`}>
+                    함유 영양소 (선택)
+                  </label>
+                  <input
+                    id={`supplement-nutrient-${index}`}
+                    placeholder="예: 비타민 D"
+                    value={item.nutrient ?? ""}
+                    onChange={(e) => updateSupplement(index, { nutrient: e.target.value })}
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field__label" htmlFor={`supplement-doseAmount-${index}`}>
+                    1회 섭취량
+                  </label>
+                  <input
+                    id={`supplement-doseAmount-${index}`}
+                    type="number"
+                    min={0.01}
+                    step={0.01}
+                    required
+                    value={item.doseAmount}
+                    onChange={(e) =>
+                      updateSupplement(index, { doseAmount: Number(e.target.value) })
+                    }
+                  />
+                </div>
+
+                <div className="field">
+                  <label className="field__label" htmlFor={`supplement-doseUnit-${index}`}>
+                    단위
+                  </label>
+                  <select
+                    id={`supplement-doseUnit-${index}`}
+                    value={item.doseUnit}
+                    onChange={(e) =>
+                      updateSupplement(index, { doseUnit: e.target.value as DoseUnit })
+                    }
+                  >
+                    {DOSE_UNITS.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {DOSE_UNIT_LABEL[unit]}
+                      </option>
+                    ))}
+                  </select>
+                  {CFU_UNITS.includes(item.doseUnit) && (
+                    <p className="field__hint">
+                      유산균은 무게보다 균 수가 기준입니다. 제품에 “100억 CFU” 로 적혀 있으면 100 +
+                      억 CFU 로 입력하세요. (1포 ≈ 1.5g, 1캡슐 ≈ 400~500mg 은 대부분 부형제입니다)
+                    </p>
+                  )}
+                </div>
+
+                <div className="field">
+                  <label className="field__label" htmlFor={`supplement-doseFrequency-${index}`}>
+                    1일 횟수
+                  </label>
+                  <input
+                    id={`supplement-doseFrequency-${index}`}
+                    type="number"
+                    min={1}
+                    value={item.doseFrequency}
+                    onChange={(e) =>
+                      updateSupplement(index, { doseFrequency: Number(e.target.value) })
+                    }
+                  />
+                </div>
+
+                <div className="field field--wide">
+                  <span className="field__label">섭취 시각 ({item.doseFrequency}회)</span>
+                  <div className="time-grid">
+                    {item.intakeTimes.map((slot, slotIndex) => (
+                      <div className="field" key={slotIndex}>
+                        <label
+                          className="field__sublabel"
+                          htmlFor={`supplement-intakeTimes-${index}-${slotIndex}`}
+                        >
+                          {slotIndex + 1}회차
+                        </label>
+                        <select
+                          id={`supplement-intakeTimes-${index}-${slotIndex}`}
+                          value={slot}
+                          onChange={(e) =>
+                            updateIntakeTime(index, slotIndex, e.target.value as TimeSlot)
+                          }
+                        >
+                          {TIME_SLOTS.map((value) => (
+                            <option key={value} value={value}>
+                              {TIME_SLOT_LABEL[value]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
+          ))}
+
+          <button
+            type="button"
+            className="btn-add"
+            onClick={() => setSupplements((prev) => [...prev, createSupplement()])}
+            disabled={supplements.length >= 20}
+          >
+            + 영양제 추가
+          </button>
+        </fieldset>
+      )}
+
+      {step === 2 && (
+        <fieldset className="card">
+          <legend className="card__legend">복용 중인 약 (선택)</legend>
+          <div className="card__top">
+            <p className="card__hint">
+              약을 적어주면 그 약과 부딪히는 영양제가 있는지 함께 확인합니다. 없으면 비워두고 바로
+              분석하셔도 됩니다.
+            </p>
+            <button
+              type="button"
+              className="btn-demo"
+              onClick={() => setMedications(DEMO_MEDICATIONS.map((item) => ({ ...item })))}
+            >
+              예시로 채우기
+            </button>
           </div>
-        ))}
 
-        <button
-          type="button"
-          className="btn-add"
-          onClick={() => setSupplements((prev) => [...prev, createSupplement()])}
-          disabled={supplements.length >= 20}
-        >
-          + 영양제 추가
-        </button>
-      </fieldset>
+          {medications.map((med, index) => (
+            <div className="row" key={index}>
+              <div className="row__head">
+                <span className="row__index">약 {index + 1}</span>
+                <button
+                  type="button"
+                  className="btn-remove"
+                  onClick={() => setMedications((prev) => prev.filter((_, i) => i !== index))}
+                  aria-label={`약 ${index + 1} 삭제`}
+                >
+                  삭제
+                </button>
+              </div>
 
-      <fieldset className="card">
-        <legend className="card__legend">복용 중인 약 (선택)</legend>
-        <p className="card__hint">
-          약을 적어주면 그 약과 부딪히는 영양제가 있는지 함께 확인합니다. 없으면 비워두세요.
+              <div className="field-grid">
+                <div className="field">
+                  <label className="field__label" htmlFor={`medication-medicationName-${index}`}>
+                    약 이름
+                  </label>
+                  <input
+                    id={`medication-medicationName-${index}`}
+                    placeholder="예: 와파린"
+                    value={med.medicationName}
+                    onChange={(e) => updateMedication(index, { medicationName: e.target.value })}
+                  />
+                </div>
+                <div className="field">
+                  <label className="field__label" htmlFor={`medication-ingredient-${index}`}>
+                    성분 (선택)
+                  </label>
+                  <input
+                    id={`medication-ingredient-${index}`}
+                    placeholder="예: 와파린나트륨"
+                    value={med.ingredient ?? ""}
+                    onChange={(e) => updateMedication(index, { ingredient: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            className="btn-add"
+            onClick={() =>
+              setMedications((prev) => [...prev, { medicationName: "", intakeTimes: [] }])
+            }
+          >
+            + 약 추가
+          </button>
+        </fieldset>
+      )}
+
+      {stepError && (
+        <p className="alert" role="alert">
+          {stepError}
         </p>
+      )}
 
-        {medications.map((med, index) => (
-          <div className="row" key={index}>
-            <div className="row__head">
-              <span className="row__index">약 {index + 1}</span>
-              <button
-                type="button"
-                className="btn-remove"
-                onClick={() => setMedications((prev) => prev.filter((_, i) => i !== index))}
-                aria-label={`약 ${index + 1} 삭제`}
-              >
-                삭제
-              </button>
-            </div>
-
-            <div className="field-grid">
-              <div className="field">
-                <label className="field__label" htmlFor={`medication-medicationName-${index}`}>
-                  약 이름
-                </label>
-                <input
-                  id={`medication-medicationName-${index}`}
-                  placeholder="예: 와파린"
-                  value={med.medicationName}
-                  onChange={(e) => updateMedication(index, { medicationName: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label className="field__label" htmlFor={`medication-ingredient-${index}`}>
-                  성분 (선택)
-                </label>
-                <input
-                  id={`medication-ingredient-${index}`}
-                  placeholder="예: 와파린나트륨"
-                  value={med.ingredient ?? ""}
-                  onChange={(e) => updateMedication(index, { ingredient: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-
-        <button
-          type="button"
-          className="btn-add"
-          onClick={() => setMedications((prev) => [...prev, { medicationName: "", intakeTimes: [] }])}
-        >
-          + 약 추가
-        </button>
-      </fieldset>
-
-      <button type="submit" className="btn-submit" disabled={isLoading}>
-        {isLoading ? "분석 중..." : "분석하기"}
-      </button>
+      <div className="wizard-nav">
+        {step > 0 && (
+          <button type="button" className="btn-ghost" onClick={goPrev} disabled={isLoading}>
+            이전
+          </button>
+        )}
+        {/*
+          key 를 다르게 주는 이유:
+          key 가 없으면 React 가 같은 DOM 노드를 재사용해 type 만 button -> submit 으로 바꾼다.
+          그러면 '다음' 을 실제 마우스로 누르는 순간 React 가 동기 렌더를 끝내고,
+          브라우저는 이미 submit 이 된 그 노드의 기본 동작을 실행해 폼을 제출한다.
+          결과: 복용 약 단계를 건너뛰고 바로 분석으로 넘어간다.
+          key 를 나누면 노드가 교체되므로 이 일이 생기지 않는다.
+        */}
+        {step < LAST_INPUT_STEP ? (
+          <button key="next" type="button" className="btn-submit" onClick={goNext}>
+            다음
+          </button>
+        ) : (
+          <button key="analyze" type="submit" className="btn-submit" disabled={isLoading}>
+            {isLoading ? "분석 중..." : "분석하기"}
+          </button>
+        )}
+      </div>
     </form>
   );
 }
