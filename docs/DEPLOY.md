@@ -250,12 +250,23 @@ Bedrock 의 Claude 를 부르고 계약 응답을 돌려줍니다. 스택 이름
 스크립트는 **엔드포인트와 API 키를 stdout 두 줄로만** 내보냅니다. `deploy_all.sh` 가 그걸 받아
 백엔드의 `LLM_API_BASE_URL` / `LLM_API_KEY` 로 넘깁니다. **키를 사람이 복사해 옮길 일이 없습니다.**
 
+### 로컬에서 배포할 때 (Windows)
+
+CI(Linux)에서는 문제가 없지만 로컬 Windows 에서는 두 가지가 걸립니다.
+
+| 증상 | 원인 | 해결 |
+|---|---|---|
+| `sam build` 가 `UnicodeDecodeError` 로 실패 | 저장소 경로에 한글이 있으면 SAM 이 pip 출력을 못 읽는다 | ASCII 경로로 복사해서 빌드하거나 저장소를 한글 없는 경로에 둔다 |
+| `LLM_API_PATH` 에 `C:/Program` 이 들어감 | Git Bash(MSYS)가 `/analyze` 를 Windows 경로로 바꾼다 | 스크립트가 `MSYS2_ARG_CONV_EXCL` 로 막아 둠 (Linux 에는 영향 없음) |
+
+`PYTHONUTF8=1` 을 켜면 pip 출력(한글 주석 포함)을 읽다 나는 `cp949` 오류도 사라집니다.
+
 ### 모델과 지연 시간
 
 | 모델 (`ModelId`) | effort=low 응답 | API Gateway 29초 한도 |
 |---|---|---|
 | `global.anthropic.claude-sonnet-5` (기본값) | 약 14초 | 여유 있음 |
-| `global.anthropic.claude-opus-5` | 24~26초 | **아슬아슬. 입력이 길면 504** |
+| `global.anthropic.claude-opus-5` | 24~26초 | 쿼터 상향(120초 승인) 덕에 사용 가능 |
 
 - 모델 ID 는 반드시 **추론 프로파일**(`global.` 접두사)이어야 합니다. on-demand ID 는 Bedrock 이 거부합니다.
 - 더 꼼꼼한 답이 필요하면 `LLM_EFFORT=medium|high`. 그만큼 느려집니다.
@@ -270,9 +281,9 @@ Bedrock 의 Claude 를 부르고 계약 응답을 돌려줍니다. 스택 이름
                                                                                       └ LLM Lambda 자체는 120s
 ```
 
-API Gateway REST API 의 통합 타임아웃 29초는 **서비스 쿼터** `L-E5AE38E3` 입니다(조정 가능).
-상향이 승인되면 `INTEGRATION_TIMEOUT_MS` 를 올리고, `LlmTimeoutSeconds`·백엔드 Lambda `Timeout`·
-프론트 `TIMEOUT_MS` 를 그 위로 함께 올립니다.
+API Gateway REST API 의 기본 통합 타임아웃 29초는 **서비스 쿼터** `L-E5AE38E3` 이고,
+이 계정은 **120000ms 로 상향 승인**되어 있습니다. 그래도 백엔드 httpx(45초)보다 길게 잡으면
+의미가 없으므로 템플릿 기본값은 40000ms 입니다. 더 늘리려면 체인 전체를 같이 올립니다.
 
 ```bash
 aws service-quotas request-service-quota-increase --service-code apigateway --quota-code L-E5AE38E3 --desired-value 120000 --region ap-northeast-2
