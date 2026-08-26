@@ -196,4 +196,15 @@ Enum 값은 **여기 적힌 문자열만** 씁니다. 새 값이 필요하면 §
 | `user_info`, `profile_data` | `user_profile` |
 | `llm`, `ai`, `gpt` (변수명으로) | `llm_provider` |
 
-> 리뷰어는 위 단어가 diff에 보이면 **변경 요청(Request changes)** 합니다.
+> 리뷰어가 눈으로 잡기 전에 **CI 가 먼저 막습니다.**
+>
+> ```bash
+> python scripts/check_glossary.py   # 로컬에서 미리 확인
+> ```
+>
+> 금지어가 코드에 있으면 `glossary` 검사가 실패하고 머지가 막힙니다.
+> 정말 예외가 필요한 줄에는 끝에 `glossary-ok` 주석을 답니다.
+>
+> AI 도구(Claude Code, Copilot, Cursor)는 저장소 루트의 `CLAUDE.md` /
+> `AGENTS.md` / `.github/copilot-instructions.md` 를 자동으로 읽으므로,
+> 따로 알려주지 않아도 이 규칙을 따릅니다.

@@ -37,7 +37,7 @@ def test_medications_are_optional():
 
 
 def test_rejects_non_glossary_field_name():
-    # 'drugs', 'gender', 'dosage' 등은 금지어. GLOSSARY 7절 참고.
+    # 사전에 없는 필드명은 거부된다. GLOSSARY 7절의 금지어 표 참고.  glossary-ok
     with pytest.raises(ValidationError):
         AnalysisRequest.model_validate(
             {**VALID_REQUEST, "drugs": [{"name": "와파린"}]}

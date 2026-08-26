@@ -26,6 +26,20 @@
 특히 이 프로젝트는 **영양제(`supplement`)와 약(`medication`)이 다른 개념**입니다.
 섞어 쓰면 상호작용 로직이 통째로 꼬입니다.
 
+### 이 규칙은 기계가 강제합니다
+
+| 장치 | 하는 일 |
+|---|---|
+| `CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md` | Claude Code·Copilot·Cursor 가 **자동으로 읽습니다.** 따로 말 안 해도 AI 가 용어 규칙을 따릅니다 |
+| CI 의 `glossary` 검사 | 금지어가 코드에 있거나 파일 위치가 틀리면 **빌드 실패**. 머지가 막힙니다 |
+| `extra="forbid"` (Pydantic) | 사전에 없는 필드명으로 API 요청이 오면 **422 로 거부** |
+
+올리기 전에 로컬에서 미리 확인:
+
+```bash
+python scripts/check_glossary.py
+```
+
 ---
 
 ## 문서

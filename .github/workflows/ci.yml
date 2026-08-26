@@ -6,6 +6,17 @@ on:
     branches: [main]
 
 jobs:
+  glossary:
+    name: glossary (용어 검사)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 금지어 / 파일 위치 검사
+        run: python scripts/check_glossary.py
+
   backend:
     runs-on: ubuntu-latest
     steps:
