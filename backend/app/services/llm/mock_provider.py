@@ -41,6 +41,7 @@ class MockProvider:
             "nutrient_stack": [
                 {
                     "nutrient": first.nutrient or first.supplement_name,
+                    "nutrient_category": "maintain",
                     "recommended_dose": (
                         f"{first.dose_amount}{first.dose_unit.value} / "
                         f"1일 {first.dose_frequency}회"
@@ -56,6 +57,7 @@ class MockProvider:
                     "intake_timing": "after_meal",
                     "supplement_name": first.supplement_name,
                     "spacing_hours": 2 if medication_name else None,
+                    "avoid_with": [medication_name] if medication_name else [],
                 }
             ],
         }

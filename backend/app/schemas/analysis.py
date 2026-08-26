@@ -52,6 +52,15 @@ class RiskLevel(str, Enum):
     high = "high"
 
 
+class NutrientCategory(str, Enum):
+    """영양소를 왜 추천하는지. GLOSSARY 4-6 참고."""
+
+    deficient = "deficient"  # 부족해서 보충 필요
+    synergy = "synergy"  # 이미 먹는 것과 같이 먹으면 좋음
+    maintain = "maintain"  # 현재 섭취량 적절. 유지
+    reduce = "reduce"  # 과다. 줄이는 것 고려
+
+
 class InteractionType(str, Enum):
     """주의점이 '무엇과 무엇' 사이의 문제인지."""
 
@@ -115,6 +124,7 @@ class AnalysisRequest(StrictInput):
 
 class NutrientItem(StrictInput):
     nutrient: str
+    nutrient_category: NutrientCategory
     recommended_dose: str
     rationale: str
     evidence: str | None = None
@@ -134,6 +144,11 @@ class IntakeScheduleItem(StrictInput):
     supplement_name: str
     spacing_hours: int | None = Field(
         default=None, ge=0, le=24, description="약과 몇 시간 띄울지"
+    )
+    avoid_with: list[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="이 시간대에 함께 섭취를 피할 영양제·약 이름",
     )
 
 

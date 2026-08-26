@@ -52,8 +52,12 @@ def build_prompt(request: AnalysisRequest) -> str:
     lines += [
         "",
         "분석해 주세요:",
-        "1) nutrient_stack — 지금 조합에 대한 평가와 보완하면 좋을 영양소",
-        "2) cautions — 영양제와 약, 영양제끼리의 주의점 및 위험도",
-        "3) intake_schedule — 하루 중 언제 먹고 약과 몇 시간 띄울지",
+        "1) nutrient_stack — 영양소마다 nutrient_category 를 붙여 주세요.",
+        "   deficient(부족해서 보충 필요) / synergy(같이 먹으면 좋음) /",
+        "   maintain(지금이 적절) / reduce(과다하니 줄이기)",
+        "2) cautions — 과다 섭취, 성분 간 상호작용, 흡수 방해를 각각",
+        "   interaction_type 으로 구분하고 위험도를 매겨 주세요.",
+        "3) intake_schedule — 하루 중 언제 먹을지, 약과 몇 시간 띄울지,",
+        "   그 시간대에 함께 먹으면 안 되는 것을 avoid_with 에 적어 주세요.",
     ]
     return "\n".join(lines)

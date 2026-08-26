@@ -92,6 +92,7 @@ A: dosage         B: dose_amount     C: amount      D: qty
 | 분석 결과 | analysis result | `analysis_result` | `analysisResult` | object | 본문 + `request_id` + `disclaimer` |
 | 영양소 조합 | nutrient stack | `nutrient_stack` | `nutrientStack` | array | ⚠️ `combo`, `combination` 쓰지 않음 |
 | 권장 섭취량 | recommended dose | `recommended_dose` | `recommendedDose` | str | 예: `"1000IU / 1일 1회"` |
+| **추천 유형** | nutrient category | `nutrient_category` | `nutrientCategory` | enum | ⭐ 부족/시너지/유지/감량. §4-6 |
 | 추천 사유 | rationale | `rationale` | `rationale` | str | |
 | 주의점 | caution | `caution` | `caution` | object | ⚠️ `warning`, `notice` 쓰지 않음 |
 | 주의점 목록 | cautions | `cautions` | `cautions` | array | |
@@ -103,6 +104,7 @@ A: dosage         B: dose_amount     C: amount      D: qty
 | 섭취 일정 | intake schedule | `intake_schedule` | `intakeSchedule` | array | 하루 타임라인 |
 | 시간대 | time slot | `time_slot` | `timeSlot` | enum | §4-3 |
 | 간격 두기 | spacing | `spacing_hours` | `spacingHours` | int? | 약과 몇 시간 띄울지 |
+| **같이 먹지 말 것** | avoid with | `avoid_with` | `avoidWith` | array | ⭐ 이 시간대에 함께 섭취를 피할 영양제·약 이름 |
 | 근거 | evidence | `evidence` | `evidence` | str? | |
 | 면책 문구 | disclaimer | `disclaimer` | `disclaimer` | str | §6 |
 | 요청 ID | request id | `request_id` | `requestId` | str | 로그 추적용 |
@@ -144,6 +146,17 @@ Enum 값은 **여기 적힌 문자열만** 씁니다. 새 값이 필요하면 §
 | `supplement_food` | 영양제 x 음식 (공복/식후 등) |
 | `dose_limit` | 상한 섭취량 초과 |
 | `condition` | 나이·성별·체중 관련 주의 |
+
+### 4-6. `nutrient_category`
+
+영양소를 **왜** 추천하는지 구분한다.
+
+| 값 | 의미 |
+|---|---|
+| `deficient` | 지금 부족해 보여서 보충이 필요함 |
+| `synergy` | 이미 먹는 것과 **같이 먹으면 좋음** |
+| `maintain` | 현재 섭취량이 적절함. 유지 권장 |
+| `reduce` | 과다하므로 줄이는 것을 고려 |
 
 ---
 

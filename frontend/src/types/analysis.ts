@@ -18,6 +18,9 @@ export type TimeSlot =
 
 export type RiskLevel = "low" | "moderate" | "high";
 
+/** 영양소를 왜 추천하는지. GLOSSARY 4-6 */
+export type NutrientCategory = "deficient" | "synergy" | "maintain" | "reduce";
+
 export type InteractionType =
   | "supplement_medication"
   | "supplement_supplement"
@@ -60,6 +63,7 @@ export interface AnalysisRequest {
 
 export interface NutrientItem {
   nutrient: string;
+  nutrientCategory: NutrientCategory;
   recommendedDose: string;
   rationale: string;
   evidence?: string | null;
@@ -78,6 +82,8 @@ export interface IntakeScheduleItem {
   intakeTiming: TimeSlot;
   supplementName: string;
   spacingHours?: number | null;
+  /** 이 시간대에 함께 섭취를 피할 영양제·약 이름 */
+  avoidWith: string[];
 }
 
 export interface AnalysisResult {
