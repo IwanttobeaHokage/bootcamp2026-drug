@@ -52,3 +52,37 @@ def test_supplement_medication_interaction_is_reported():
     assert "supplement_medication" in types
     assert result.disclaimer
     assert result.request_id
+
+
+def test_nutrient_category_is_required():
+    """추천 유형(부족/시너지/유지/감량)이 빠지면 계약 위반으로 걸러진다."""
+    from app.schemas.analysis import AnalysisBody
+
+    with pytest.raises(ValidationError):
+        AnalysisBody.model_validate(
+            {
+                "nutrient_stack": [
+                    {
+                        "nutrient": "비타민 D",
+                        "recommended_dose": "1000IU / 1일 1회",
+                        "rationale": "설명",
+                    }
+                ],
+                "cautions": [],
+                "intake_schedule": [],
+            }
+        )
+
+
+def test_schedule_reports_what_not_to_take_together():
+    request = AnalysisRequest.model_validate(VALID_REQUEST)
+    result = run_analysis(request, provider=MockProvider())
+
+    assert result.nutrient_stack[0].nutrient_category.value in {
+        "deficient",
+        "synergy",
+        "maintain",
+        "reduce",
+    }
+    # 약을 같이 입력했으므로 그 약이 avoid_with 에 들어가야 한다.
+    assert "와파린" in result.intake_schedule[0].avoid_with

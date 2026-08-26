@@ -54,6 +54,7 @@
   "nutrient_stack": [
     {
       "nutrient": "비타민 D",
+      "nutrient_category": "maintain",
       "recommended_dose": "1000IU / 1일 1회",
       "rationale": "현재 섭취량은 일반적인 유지 용량 범위입니다.",
       "evidence": null
@@ -73,7 +74,8 @@
       "time_slot": "morning",
       "intake_timing": "after_meal",
       "supplement_name": "비타민 D 1000IU",
-      "spacing_hours": 2
+      "spacing_hours": 2,
+      "avoid_with": ["와파린"]
     }
   ]
 }
@@ -84,6 +86,7 @@
 | 필드 | 필수 | 값 |
 |---|---|---|
 | `nutrient_stack[].nutrient` | ✅ | 문자열 |
+| `nutrient_stack[].nutrient_category` | ✅ | `deficient`(부족) \| `synergy`(같이 먹으면 좋음) \| `maintain`(유지) \| `reduce`(줄이기) |
 | `nutrient_stack[].recommended_dose` | ✅ | 문자열 (예: `"1000IU / 1일 1회"`) |
 | `nutrient_stack[].rationale` | ✅ | 한국어 문장 |
 | `nutrient_stack[].evidence` | ⬜ | 없으면 `null` |
@@ -96,6 +99,7 @@
 | `intake_schedule[].intake_timing` | ✅ | GLOSSARY §4-3 값 |
 | `intake_schedule[].supplement_name` | ✅ | 문자열 |
 | `intake_schedule[].spacing_hours` | ⬜ | 정수 0–24 또는 `null` |
+| `intake_schedule[].avoid_with` | ⬜ | 그 시간대에 함께 먹으면 안 되는 영양제·약 이름 배열. 없으면 `[]` |
 
 > ⚠️ **정의되지 않은 키를 추가하면 422 로 거부됩니다.** (`extra="forbid"`)
 > 필드를 추가하고 싶으면 [GLOSSARY.md §5](./GLOSSARY.md) 절차대로 용어 PR 먼저 올려주세요.
@@ -122,6 +126,8 @@
 3. 불확실하면 추측하지 말고 "약사 상담 필요"로 적기.
 4. 위험한 상호작용은 `risk_level: "high"`.
 5. 모든 서술은 **한국어**.
+6. `nutrient_category` 로 **부족해서 보충할 것**과 **같이 먹으면 좋은 것**을 구분하기.
+7. 같은 시간대에 같이 먹으면 안 되는 것은 `avoid_with` 에 이름으로 적기.
 
 ---
 
