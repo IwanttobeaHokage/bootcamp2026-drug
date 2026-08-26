@@ -47,6 +47,8 @@ aws s3 cp "$DIST/index.html" "s3://$WEB_BUCKET/index.html" \
 
 if [ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
   echo "[deploy_web] 4/4 CloudFront 캐시 무효화"
+  # Git Bash(MSYS)가 '/index.html' 을 Windows 경로로 바꾸지 못하게 막는다.
+  MSYS2_ARG_CONV_EXCL='/' \
   aws cloudfront create-invalidation \
     --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
     --paths "/index.html" >/dev/null

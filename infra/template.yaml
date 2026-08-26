@@ -30,7 +30,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: python3.11
+    Runtime: python3.13
     Architectures: [x86_64]
     MemorySize: 512
     # 타임아웃 체인: LLM API Gateway 29s < 백엔드 httpx 45s < 이 Lambda 60s < 프론트 70s.
