@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { requestAnalysis } from "@/api/client";
+import { AnalysisRequestError, requestAnalysis } from "@/api/client";
 import { AnalysisResultView } from "@/components/AnalysisResultView";
 import { SupplementForm } from "@/components/SupplementForm";
 import type { AnalysisRequest, AnalysisResult } from "@/types/analysis";
@@ -14,8 +14,12 @@ export function AnalysisPage() {
     setError(null);
     try {
       setResult(await requestAnalysis(request));
-    } catch {
-      setError("분석에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    } catch (err) {
+      setError(
+        err instanceof AnalysisRequestError
+          ? err.userMessage
+          : "분석에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+      );
     } finally {
       setIsLoading(false);
     }

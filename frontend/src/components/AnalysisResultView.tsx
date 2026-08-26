@@ -1,35 +1,10 @@
-import type {
-  AnalysisResult,
-  CautionItem,
-  InteractionType,
-  RiskLevel,
-  TimeSlot,
-} from "@/types/analysis";
-
-const RISK_LABEL: Record<RiskLevel, string> = {
-  low: "낮음",
-  moderate: "보통",
-  high: "높음",
-};
-
-const INTERACTION_LABEL: Record<InteractionType, string> = {
-  supplement_medication: "영양제 x 약",
-  supplement_supplement: "영양제 x 영양제",
-  supplement_food: "영양제 x 음식",
-  dose_limit: "섭취 상한",
-  condition: "체질/연령",
-};
-
-const TIME_SLOT_LABEL: Record<TimeSlot, string> = {
-  morning: "아침",
-  noon: "점심",
-  evening: "저녁",
-  bedtime: "취침 전",
-  before_meal: "식전",
-  with_meal: "식사와 함께",
-  after_meal: "식후",
-  empty_stomach: "공복",
-};
+import {
+  INTERACTION_LABEL,
+  NUTRIENT_CATEGORY_LABEL,
+  RISK_LABEL,
+  TIME_SLOT_LABEL,
+} from "@/constants/labels";
+import type { AnalysisResult, CautionItem, RiskLevel } from "@/types/analysis";
 
 /** 약과 부딪히는 주의점, 위험도 높은 순으로 먼저 보여준다. */
 const RISK_ORDER: Record<RiskLevel, number> = { high: 0, moderate: 1, low: 2 };
@@ -86,11 +61,15 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
         <p className="empty">추천할 영양소 조합이 없습니다.</p>
       ) : (
         <ul className="list-plain">
-          {result.nutrientStack.map((item) => (
-            <li className="nutrient" key={item.nutrient}>
+          {result.nutrientStack.map((item, index) => (
+            <li className="nutrient" key={index} data-category={item.nutrientCategory}>
               <strong className="nutrient__name">{item.nutrient}</strong>{" "}
+              <span className="tag tag--category">
+                {NUTRIENT_CATEGORY_LABEL[item.nutrientCategory]}
+              </span>{" "}
               <span className="nutrient__dose">{item.recommendedDose}</span>
               <p className="nutrient__rationale">{item.rationale}</p>
+              {item.evidence && <p className="nutrient__evidence">근거: {item.evidence}</p>}
             </li>
           ))}
         </ul>
@@ -109,6 +88,11 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
               <span>{item.supplementName}</span>
               {item.spacingHours != null && (
                 <span className="schedule__spacing">약과 {item.spacingHours}시간 간격</span>
+              )}
+              {item.avoidWith.length > 0 && (
+                <span className="schedule__avoid">
+                  함께 피하기: {item.avoidWith.join(", ")}
+                </span>
               )}
             </li>
           ))}

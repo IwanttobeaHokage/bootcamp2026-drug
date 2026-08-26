@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { DOSE_UNITS, TIME_SLOT_LABEL } from "@/constants/labels";
 import type {
   AnalysisRequest,
   DoseUnit,
@@ -8,23 +9,10 @@ import type {
   TimeSlot,
 } from "@/types/analysis";
 
-const DOSE_UNITS: DoseUnit[] = ["mg", "g", "mcg", "ml", "iu", "tablet", "capsule", "softgel", "scoop"];
-
-const TIME_SLOT_LABEL: Record<TimeSlot, string> = {
-  morning: "아침",
-  noon: "점심",
-  evening: "저녁",
-  bedtime: "취침 전",
-  before_meal: "식전",
-  with_meal: "식사와 함께",
-  after_meal: "식후",
-  empty_stomach: "공복",
-};
-
 /** 행마다 새 객체를 만든다. 같은 참조를 여러 행이 공유하지 않도록. */
 const createSupplement = (): Supplement => ({
   supplementName: "",
-  doseAmount: 0,
+  doseAmount: 1,
   doseUnit: "mg",
   doseFrequency: 1,
   intakeTime: "after_meal",
@@ -167,7 +155,9 @@ export function SupplementForm({ isLoading, onSubmit }: Props) {
                 <input
                   id={`supplement-doseAmount-${index}`}
                   type="number"
-                  min={0}
+                  min={0.01}
+                  step={0.01}
+                  required
                   value={item.doseAmount}
                   onChange={(e) => updateSupplement(index, { doseAmount: Number(e.target.value) })}
                 />
