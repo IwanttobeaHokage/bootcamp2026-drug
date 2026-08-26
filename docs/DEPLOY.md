@@ -295,6 +295,7 @@ verify(용어 검사 · pytest · 프론트 빌드)  →  deploy(백엔드 → �
 | `AWS_DEPLOY_ROLE_ARN` | GitHub OIDC 로 assume 할 IAM Role ARN |
 | `WEB_BUCKET` | 프론트 버킷 이름 |
 | `CLOUDFRONT_DISTRIBUTION_ID` | 배포 ID (여기서 프론트 도메인을 역으로 구합니다) |
+| `SAM_ARTIFACT_BUCKET` | SAM 빌드 산출물을 둘 버킷. 비워두면 `--resolve-s3` 로 SAM 이 관리 버킷을 직접 만드는데, 그러면 배포 Role 에 관리 스택 생성 권한이 더 필요합니다 |
 | `LLM_API_BASE_URL` / `LLM_API_KEY` | (선택) 외부 AWS LLM 주소·키 |
 
 Variables(선택): `LLM_PROVIDER` — 안 넣으면 `mock`.
@@ -308,10 +309,21 @@ Variables(선택): `LLM_PROVIDER` — 안 넣으면 `mock`.
 | CloudFormation | `cloudformation:*` (스택 `bootcamp2026-api/*` 로 좁힐 것) |
 | Lambda | `lambda:*` (함수 이름으로 좁힐 것) |
 | IAM | `iam:CreateRole`, `iam:AttachRolePolicy`, `iam:PutRolePolicy`, `iam:PassRole`, `iam:GetRole`, `iam:DeleteRole`, `iam:DetachRolePolicy`, `iam:TagRole` |
-| S3 (SAM 아티팩트) | `s3:*` on `arn:aws:s3:::aws-sam-cli-managed-*` |
+| S3 (SAM 아티팩트) | `s3:ListBucket`, `s3:GetObject`, `s3:PutObject` on `SAM_ARTIFACT_BUCKET` |
 | CloudWatch Logs | `logs:CreateLogGroup`, `logs:PutRetentionPolicy`, `logs:DescribeLogGroups`, `logs:DeleteLogGroup` |
 
 > `iam:*` 를 통째로 주지 마세요. 위 목록이면 SAM 이 Lambda 실행 역할을 만들고 지우는 데 충분합니다.
+
+리소스는 이름으로 좁힙니다. 실제로 적용된 범위:
+
+| 대상 | 리소스 패턴 |
+|---|---|
+| CloudFormation | `stack/bootcamp2026-api/*` (+ SAM 변환 `transform/Serverless-2016-10-31`) |
+| Lambda | `function:bootcamp2026-api-*` |
+| IAM (Lambda 실행 역할) | `role/bootcamp2026-api-*` |
+| CloudWatch Logs | `log-group:/aws/lambda/bootcamp2026-api-*` |
+
+스택 이름(`STACK_NAME`)을 바꾸면 이 패턴들도 같이 바꿔야 합니다.
 
 ---
 

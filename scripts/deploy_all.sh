@@ -7,7 +7,7 @@
 # 쓰는 법:
 #   WEB_BUCKET=bipa-final-bucket CLOUDFRONT_DISTRIBUTION_ID=E2ARG39AU2O8WS scripts/deploy_all.sh
 #
-# 선택: STACK_NAME / AWS_REGION / LLM_PROVIDER / LLM_API_BASE_URL / LLM_API_KEY
+# 선택: STACK_NAME / AWS_REGION / SAM_ARTIFACT_BUCKET / LLM_PROVIDER / LLM_API_BASE_URL / LLM_API_KEY
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -27,7 +27,7 @@ WEB_ORIGIN="https://$WEB_DOMAIN"
 echo "[deploy_all] 프론트 = $WEB_ORIGIN"
 
 echo "[deploy_all] === 1단계: 백엔드 ==="
-API_BASE_URL="$(CORS_ORIGINS="$WEB_ORIGIN" AWS_REGION="$AWS_REGION" "$ROOT/scripts/deploy_api.sh")"
+API_BASE_URL="$(CORS_ORIGINS="$WEB_ORIGIN" AWS_REGION="$AWS_REGION" SAM_ARTIFACT_BUCKET="${SAM_ARTIFACT_BUCKET:-}" "$ROOT/scripts/deploy_api.sh")"
 echo "[deploy_all] 백엔드 = $API_BASE_URL"
 
 echo "[deploy_all] === 2단계: 프론트 ==="

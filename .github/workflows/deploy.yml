@@ -70,6 +70,8 @@ jobs:
         env:
           WEB_BUCKET: ${{ secrets.WEB_BUCKET }}
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+          # 없으면 SAM 이 관리 버킷을 직접 만든다(배포 Role 에 권한이 더 필요).
+          SAM_ARTIFACT_BUCKET: ${{ secrets.SAM_ARTIFACT_BUCKET }}
           # LLM 연결 정보. 없으면 mock 으로 뜬다(앱은 그대로 동작).
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'mock' }}
           LLM_API_BASE_URL: ${{ secrets.LLM_API_BASE_URL }}
