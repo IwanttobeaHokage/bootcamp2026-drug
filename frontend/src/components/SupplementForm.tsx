@@ -409,12 +409,20 @@ export function SupplementForm({ step, isLoading, onStepChange, onSubmit }: Prop
             이전
           </button>
         )}
+        {/*
+          key 를 다르게 주는 이유:
+          key 가 없으면 React 가 같은 DOM 노드를 재사용해 type 만 button -> submit 으로 바꾼다.
+          그러면 '다음' 을 실제 마우스로 누르는 순간 React 가 동기 렌더를 끝내고,
+          브라우저는 이미 submit 이 된 그 노드의 기본 동작을 실행해 폼을 제출한다.
+          결과: 복용 약 단계를 건너뛰고 바로 분석으로 넘어간다.
+          key 를 나누면 노드가 교체되므로 이 일이 생기지 않는다.
+        */}
         {step < LAST_INPUT_STEP ? (
-          <button type="button" className="btn-submit" onClick={goNext}>
+          <button key="next" type="button" className="btn-submit" onClick={goNext}>
             다음
           </button>
         ) : (
-          <button type="submit" className="btn-submit" disabled={isLoading}>
+          <button key="analyze" type="submit" className="btn-submit" disabled={isLoading}>
             {isLoading ? "분석 중..." : "분석하기"}
           </button>
         )}
