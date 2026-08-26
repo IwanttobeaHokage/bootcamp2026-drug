@@ -1,0 +1,405 @@
+/**
+ * 전역 스타일 + 디자인 토큰.
+ * 새 라이브러리 없이 순수 CSS 만 쓴다 (docs/TECH_SPEC.md 3절 "추천 폴더" 의 styles/).
+ * 색·간격은 여기 변수로만 정의하고 컴포넌트는 클래스만 쓴다.
+ */
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-muted: #f1f3f6;
+  --border: #dfe3e8;
+  --text: #1b1f24;
+  --text-muted: #5b6572;
+
+  --accent: #2f6f4f;
+  --accent-soft: #e7f2eb;
+
+  --risk-high: #b3261e;
+  --risk-high-soft: #fdecea;
+  --risk-moderate: #9a6400;
+  --risk-moderate-soft: #fdf3e2;
+  --risk-low: #37618e;
+  --risk-low-soft: #ebf2fa;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --gap: 16px;
+  --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 4px 12px rgb(16 24 40 / 4%);
+
+  --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171a;
+    --surface: #1c2024;
+    --surface-muted: #23282d;
+    --border: #333a41;
+    --text: #e8eaed;
+    --text-muted: #a2acb8;
+
+    --accent: #7fc9a2;
+    --accent-soft: #1e2f27;
+
+    --risk-high: #f2b8b5;
+    --risk-high-soft: #33201f;
+    --risk-moderate: #f0c479;
+    --risk-moderate-soft: #322a1d;
+    --risk-low: #a8c7ea;
+    --risk-low-soft: #1e2732;
+
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 레이아웃 ---------- */
+
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.page__title {
+  margin: 0 0 4px;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+}
+
+.page__lead {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+}
+
+.page__note {
+  margin: 0 0 28px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* ---------- 카드 / 폼 ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: var(--gap);
+}
+
+.card__legend {
+  padding: 0;
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.card__hint {
+  margin: -8px 0 14px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+fieldset.card {
+  border: 1px solid var(--border);
+}
+
+.field-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+input,
+select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ---------- 반복 입력 행 ---------- */
+
+.row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.row__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.row__index {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* ---------- 버튼 ---------- */
+
+button {
+  font: inherit;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.btn-add {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-add:hover {
+  background: var(--accent-soft);
+}
+
+.btn-remove {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.btn-remove:hover:not(:disabled) {
+  color: var(--risk-high);
+  border-color: var(--risk-high);
+}
+
+.btn-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-submit {
+    color: #10231a;
+  }
+}
+
+/* ---------- 결과 ---------- */
+
+.result__heading {
+  margin: 32px 0 12px;
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+}
+
+.list-plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.caution {
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.caution__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.caution__pair {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* 위험도 색. docs/TECH_SPEC.md 8절: high 는 접히지 않고 눈에 띄어야 한다. */
+.caution[data-risk="high"] {
+  border-left-color: var(--risk-high);
+  background: var(--risk-high-soft);
+}
+
+.caution[data-risk="high"] .tag--risk {
+  background: var(--risk-high);
+  color: var(--surface);
+}
+
+.caution[data-risk="moderate"] {
+  border-left-color: var(--risk-moderate);
+  background: var(--risk-moderate-soft);
+}
+
+.caution[data-risk="moderate"] .tag--risk {
+  background: var(--risk-moderate);
+  color: var(--surface);
+}
+
+.caution[data-risk="low"] {
+  border-left-color: var(--risk-low);
+  background: var(--risk-low-soft);
+}
+
+.caution[data-risk="low"] .tag--risk {
+  background: var(--risk-low);
+  color: var(--surface);
+}
+
+/* 영양제 x 약 상호작용은 맨 위에 강조 (docs/API.md) */
+.caution[data-interaction="supplement_medication"] .tag--interaction {
+  background: var(--risk-high);
+  color: var(--surface);
+}
+
+.nutrient {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.nutrient__name {
+  font-size: 1rem;
+}
+
+.nutrient__dose {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.nutrient__rationale {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.schedule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+
+.schedule__slot {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.schedule__spacing {
+  font-size: 0.8125rem;
+  color: var(--risk-moderate);
+  font-weight: 600;
+}
+
+/* ---------- 상태 ---------- */
+
+.alert {
+  border: 1px solid var(--risk-high);
+  border-radius: var(--radius-sm);
+  background: var(--risk-high-soft);
+  color: var(--risk-high);
+  padding: 12px 16px;
+  margin: var(--gap) 0;
+  font-weight: 600;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  margin: 0 0 10px;
+}
+
+/* 면책 문구. 접거나 숨기지 않는다 (docs/GLOSSARY.md 6절) */
+.disclaimer {
+  margin: 28px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
