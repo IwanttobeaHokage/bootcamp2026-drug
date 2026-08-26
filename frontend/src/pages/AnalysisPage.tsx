@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnalysisRequestError, requestAnalysis } from "@/api/client";
 import { AnalysisResultView } from "@/components/AnalysisResultView";
+import { AnalyzingOverlay } from "@/components/AnalyzingOverlay";
 import { SupplementForm } from "@/components/SupplementForm";
 import type { AnalysisRequest, AnalysisResult } from "@/types/analysis";
 
@@ -12,6 +13,7 @@ export function AnalysisPage() {
   const handleSubmit = async (request: AnalysisRequest) => {
     setIsLoading(true);
     setError(null);
+    setResult(null);
     try {
       setResult(await requestAnalysis(request));
     } catch (err) {
@@ -43,7 +45,9 @@ export function AnalysisPage() {
         </p>
       )}
 
-      <div aria-busy={isLoading}>{result && <AnalysisResultView result={result} />}</div>
+      {result && <AnalysisResultView result={result} />}
+
+      <AnalyzingOverlay isOpen={isLoading} />
     </main>
   );
 }
