@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { requestAnalysis } from "api/client";
-import { AnalysisResultView } from "components/AnalysisResultView";
-import { MedicationForm } from "components/MedicationForm";
-import type { AnalysisRequest, AnalysisResult } from "types/analysis";
+import { requestAnalysis } from "@/api/client";
+import { AnalysisResultView } from "@/components/AnalysisResultView";
+import { SupplementForm } from "@/components/SupplementForm";
+import type { AnalysisRequest, AnalysisResult } from "@/types/analysis";
 
 export function AnalysisPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -23,8 +23,9 @@ export function AnalysisPage() {
 
   return (
     <main>
-      <h1>복용약 영양소 분석</h1>
-      <MedicationForm isLoading={isLoading} onSubmit={handleSubmit} />
+      <h1>영양제 조합 분석</h1>
+      <p>먹고 있는 영양제를 입력하면 조합·주의점·섭취 시기를 정리해 드립니다.</p>
+      <SupplementForm isLoading={isLoading} onSubmit={handleSubmit} />
       {error && <p role="alert">{error}</p>}
       {result && <AnalysisResultView result={result} />}
     </main>
