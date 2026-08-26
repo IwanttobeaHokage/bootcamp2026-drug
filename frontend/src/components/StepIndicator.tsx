@@ -3,10 +3,14 @@
 interface Props {
   steps: string[];
   current: number;
+  /** 눌러서 갈 수 있는 마지막 단계. 결과를 이미 받았으면 결과 단계까지 열어준다. */
+  maxReachable?: number;
   onGoTo: (index: number) => void;
 }
 
-export function StepIndicator({ steps, current, onGoTo }: Props) {
+export function StepIndicator({ steps, current, maxReachable, onGoTo }: Props) {
+  const limit = Math.max(maxReachable ?? current, current);
+
   return (
     <ol className="steps" aria-label="입력 단계">
       {steps.map((label, index) => {
@@ -16,8 +20,8 @@ export function StepIndicator({ steps, current, onGoTo }: Props) {
             <button
               type="button"
               className="steps__dot"
-              // 지나온 단계만 되돌아갈 수 있다. 앞 단계는 검증을 거쳐야 하므로 막는다.
-              disabled={index > current}
+              // 아직 안 가본 단계는 막는다. 검증을 건너뛰고 앞으로 가지 못하게.
+              disabled={index > limit}
               aria-current={index === current ? "step" : undefined}
               onClick={() => onGoTo(index)}
             >

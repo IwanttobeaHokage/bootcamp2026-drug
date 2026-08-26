@@ -628,3 +628,34 @@ button:active:not(:disabled) {
     animation: none;
   }
 }
+
+/* ---------- 예시 채우기 (시연용) ---------- */
+
+.card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.card__top .card__hint {
+  margin: 0;
+  flex: 1;
+}
+
+.btn-demo {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: 1.5px solid var(--lime);
+  background: var(--lime-soft);
+  color: var(--lime-strong);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.btn-demo:hover {
+  background: var(--lime);
+  color: var(--white);
+}
