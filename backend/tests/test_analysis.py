@@ -86,3 +86,21 @@ def test_schedule_reports_what_not_to_take_together():
     }
     # 약을 같이 입력했으므로 그 약이 avoid_with 에 들어가야 한다.
     assert "와파린" in result.intake_schedule[0].avoid_with
+
+
+def test_health_reports_current_llm_provider():
+    """/health 로 지금 어떤 연결 방식으로 떠 있는지 확인할 수 있어야 한다.
+
+    .env 를 고쳤는데 반영이 안 될 때 가장 먼저 보는 곳이다.
+    """
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    response = TestClient(app).get("/health")
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["llm_provider"] in {"mock", "http", "lambda"}
+    assert body["llm_endpoint_configured"] in {"yes", "no"}
