@@ -1,22 +1,23 @@
 # 🧱 TECH SPEC — bootcamp2026-drug
 
-> 읽는 순서: [GLOSSARY.md](./GLOSSARY.md) → 이 문서 → [API.md](./API.md)
+> 읽는 순서: [GLOSSARY.md](./GLOSSARY.md) → 이 문서 → [API.md](./API.md) → [LLM_CONTRACT.md](./LLM_CONTRACT.md)
 
 ## 1. 제품 한 줄 정의
 
-사용자가 **복용 중인 약 + 체중 + 나이 + 성별 + 복용량**을 입력하면,
-LLM이 **① 추천 영양소 조합 ② 주의점 ③ 복용시기**를 구조화된 형태로 돌려주는 서비스.
+사용자가 **먹고 있는 영양제 + 나이·성별·체중·섭취량**을 입력하면
+**① 추천 영양소 조합 ② 주의점 ③ 섭취 시기**를 돌려주는 서비스.
+
+**복용 중인 약을 선택 입력**하면, 그 약과 부딪히는 영양제를
+`interaction_type: supplement_medication` 주의점으로 최우선 표시한다.
 
 ## 2. 기술 스택
 
 | 레이어 | 선택 | 이유 |
 |---|---|---|
-| 프론트엔드 | React 18 + Vite + TypeScript | 부트캠프 표준, 타입으로 용어 강제 가능 |
-| 상태/폼 | React Hook Form + Zod | 스키마 = 용어 검증 지점 |
+| 프론트엔드 | React 18 + Vite + TypeScript | 부트캠프 표준, 타입으로 용어 강제 |
 | 백엔드 | Python 3.11 + FastAPI + Pydantic | Pydantic 모델이 곧 API 스펙 |
-| LLM | Anthropic Claude (`claude-sonnet-5`) | tool use로 JSON 출력 강제 |
-| 검증 | pytest / vitest | |
-| 포맷터 | ruff (py), prettier + eslint (ts) | |
+| **LLM** | **외부 AWS (Lambda / API Gateway)** | 다른 팀원이 담당. 이 저장소에 모델 호출 코드 없음 |
+| 검증 | pytest | |
 
 ## 3. 폴더 구조
 
@@ -25,85 +26,110 @@ bootcamp2026-drug/
 ├─ docs/
 │  ├─ GLOSSARY.md      ← ⭐ 코드 짜기 전 필독. 용어/네이밍 단일 출처
 │  ├─ TECH_SPEC.md     ← 이 문서
-│  └─ API.md           ← 엔드포인트 계약
+│  ├─ API.md           ← 프론트 ↔ 백 계약
+│  └─ LLM_CONTRACT.md  ← 🔌 백 ↔ AWS 계약 (담당자에게 이것만 주면 됨)
 ├─ backend/
 │  ├─ app/
-│  │  ├─ main.py            FastAPI 앱 진입점
-│  │  ├─ core/config.py     환경변수 (UPPER_SNAKE_CASE)
-│  │  ├─ api/routes/        엔드포인트. 파일 1개 = 리소스 1개
-│  │  ├─ schemas/           Pydantic 모델 = API 계약
-│  │  ├─ services/          LLM 호출, 프롬프트 생성 등 비즈니스 로직
-│  │  └─ data/              영양소·상호작용 참고 데이터(JSON)
+│  │  ├─ main.py                 FastAPI 진입점
+│  │  ├─ core/config.py          환경변수 (AWS 빈 칸이 여기)
+│  │  ├─ api/routes/analysis.py  엔드포인트
+│  │  ├─ schemas/analysis.py     Pydantic 모델 = API 계약
+│  │  └─ services/
+│  │     ├─ analysis_service.py  라우터 ↔ LLM 사이. 응답 검증
+│  │     ├─ prompt_builder.py    AWS 담당자용 권장 프롬프트
+│  │     └─ llm/                 ⭐ AWS 를 꽂는 자리
+│  │        ├─ base.py             LlmProvider 인터페이스
+│  │        ├─ factory.py          LLM_PROVIDER 로 구현체 선택
+│  │        ├─ mock_provider.py    AWS 없이 개발용 고정 응답
+│  │        ├─ http_provider.py    API Gateway / Function URL
+│  │        └─ lambda_provider.py  boto3 invoke
 │  └─ tests/
 └─ frontend/
    └─ src/
-      ├─ types/         GLOSSARY 기반 TS 타입 (camelCase)
-      ├─ api/           fetch + snake_case ↔ camelCase 변환 계층
-      ├─ components/    재사용 UI
-      ├─ pages/         화면 단위
-      └─ hooks/         상태 로직
+      ├─ types/analysis.ts   GLOSSARY 기반 TS 타입 (camelCase)
+      ├─ api/                fetch + snake_case ↔ camelCase 변환
+      ├─ components/         SupplementForm, AnalysisResultView
+      └─ pages/              AnalysisPage
 ```
 
 ### 추천 폴더 (필요해지면 추가)
 
 | 폴더 | 언제 필요한가 |
 |---|---|
-| `backend/app/repositories/` | DB 붙일 때. 쿼리를 서비스에서 분리 |
-| `backend/app/prompts/` | 프롬프트가 3개 이상으로 늘어날 때 `.md`로 분리 |
-| `backend/alembic/` | DB 스키마 마이그레이션 |
-| `frontend/src/lib/` | 순수 유틸 함수 (날짜, 단위 변환) |
-| `frontend/src/styles/` | 전역 CSS / 테마 토큰 |
-| `.github/workflows/` | CI (lint + test 자동 실행) |
-| `scripts/` | 시드 데이터 생성, 일회성 스크립트 |
-| `docker/` | 팀원 환경이 갈릴 때 compose로 통일 |
+| `backend/app/repositories/` | DB 붙일 때 |
+| `frontend/src/lib/` | 순수 유틸 함수 (단위 변환 등) |
+| `frontend/src/styles/` | 전역 CSS / 테마 |
+| `frontend/src/hooks/` | 상태 로직이 컴포넌트에서 넘칠 때 |
+| `scripts/` | 시드 데이터, 일회성 스크립트 |
+| `infra/` | AWS 담당자가 IaC(SAM/CDK)를 이 저장소에 둘 경우 |
 
-> 폴더를 미리 다 만들지 마세요. **빈 폴더는 노이즈입니다.** 필요할 때 추가.
+> 빈 폴더는 만들지 않습니다. git 이 추적하지도 않고 노이즈만 됩니다.
 
 ## 4. 데이터 흐름
 
 ```
-[입력 폼]  MedicationForm.tsx
-    │  userProfile + medications (camelCase)
+[입력 폼]  SupplementForm.tsx     supplements + medications(선택) (camelCase)
     ▼
-[변환]     src/api/client.ts   camelCase → snake_case
+[변환]     src/api/case.ts        camelCase → snake_case
     ▼
 POST /api/v1/analyses
     ▼
-[검증]     schemas/analysis.py  AnalysisRequest (Pydantic)
+[검증]     schemas/analysis.py    AnalysisRequest — 모르는 필드면 422
     ▼
-[프롬프트] services/prompt_builder.py  build_prompt()
+[서비스]   analysis_service.py    run_analysis()
     ▼
-[LLM]      services/llm_client.py  tool use로 JSON 출력 강제
+[연결]     services/llm/factory   LLM_PROVIDER 로 분기
+    ├─ mock   → 고정 응답 (AWS 없이 개발)
+    ├─ http   → API Gateway / Lambda Function URL   ← 🔌 빈 칸
+    └─ lambda → boto3 invoke                        ← 🔌 빈 칸
     ▼
-[검증]     AnalysisResult 로 파싱 (스키마 불일치 시 재시도)
+[검증]     AnalysisBody 로 파싱   계약과 다르면 502
     ▼
-응답 (snake_case) → 변환 → ResultPage.tsx
++ request_id, disclaimer → 응답 → 변환 → AnalysisResultView.tsx
 ```
 
-## 5. LLM 출력 계약
+## 5. LLM 을 갈아 끼우는 법
 
-LLM에게 자유 텍스트를 받지 않습니다. **tool use(`report_analysis`)로 JSON 출력을 강제**하고,
-그 스키마는 `schemas/analysis.py`의 `AnalysisResult`와 **필드명이 1:1로 같아야** 합니다.
+`backend/.env` **한 줄만** 바꿉니다. 코드는 건드리지 않습니다.
 
-즉 새 필드를 추가하려면
-`GLOSSARY.md` → `AnalysisResult` → tool input_schema → `frontend/src/types` **4곳이 함께** 바뀝니다.
-하나라도 빠지면 PR 반려.
+```bash
+LLM_PROVIDER=mock     # 기본값. AWS 아직 없을 때
+LLM_PROVIDER=http     # + LLM_API_BASE_URL
+LLM_PROVIDER=lambda   # + LAMBDA_FUNCTION_NAME, AWS_REGION
+```
+
+새 연결 방식(Bedrock 직접 호출 등)이 필요하면
+`services/llm/` 에 파일 하나 추가 + `factory.py` 에 분기 한 줄. 라우터는 안 바뀝니다.
 
 ## 6. 환경 변수
 
-| 이름 | 예시 | 설명 |
+| 이름 | 기본값 | 설명 |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | `sk-ant-...` | ⛔ 절대 커밋 금지 |
-| `ANTHROPIC_MODEL` | `claude-sonnet-5` | 모델 ID |
+| `LLM_PROVIDER` | `mock` | `mock` \| `http` \| `lambda` |
+| `LLM_TIMEOUT_SECONDS` | `30` | 외부 호출 타임아웃 |
+| `LLM_API_BASE_URL` | (빈 칸) | 🔌 API Gateway 주소 |
+| `LLM_API_PATH` | `/analyze` | 🔌 엔드포인트 경로 |
+| `LLM_API_KEY` | (빈 칸) | 🔌 `x-api-key`. 없으면 비움 |
+| `AWS_REGION` | `ap-northeast-2` | 🔌 Lambda 리전 |
+| `LAMBDA_FUNCTION_NAME` | (빈 칸) | 🔌 Lambda 함수명 |
 | `CORS_ORIGINS` | `http://localhost:5173` | 프론트 오리진 |
-| `VITE_API_BASE_URL` | `http://localhost:8000` | 프론트에서 쓰는 백엔드 주소 |
+| `VITE_API_BASE_URL` | `http://localhost:8000` | 프론트가 부를 백엔드 |
 
-`.env`는 `.gitignore`에 있습니다. `.env.example`만 커밋합니다.
+⛔ **AWS 액세스 키는 `.env` 에 적지 않습니다.** `aws configure` 또는 IAM Role 사용.
 
-## 7. 안전 규칙 (의료 도메인)
+## 7. 프론트엔드 경로 별칭 (중요)
 
-1. 모든 응답에 `disclaimer` 필수 (GLOSSARY §6).
-2. LLM이 **용량을 새로 처방하는 문장**을 만들지 않도록 시스템 프롬프트에서 금지.
-3. `risk_level: high`인 주의점은 프론트에서 **접히지 않는 강조 UI**로 표시.
-4. 개인정보(나이·체중·복용약)는 **서버에 저장하지 않습니다.** 요청 처리 후 폐기.
-   로그에도 남기지 않습니다 (`request_id`만 기록).
+`@/` 는 `frontend/src/` 를 가리킵니다. **두 파일이 짝**입니다:
+
+- `tsconfig.json` → `paths: { "@/*": ["src/*"] }`  (타입 검사용)
+- `vite.config.ts` → `resolve.alias: { "@": .../src }` (번들러용)
+
+**한쪽만 바꾸면 `tsc` 는 통과하는데 `vite build` 가 깨집니다.** 반드시 같이 수정.
+
+## 8. 안전 규칙 (의료 도메인)
+
+1. 모든 응답에 `disclaimer` 필수 (GLOSSARY §6). 프론트에서 숨기지 않는다.
+2. LLM 이 약 용량을 바꾸라고 지시하지 않도록 시스템 프롬프트에서 금지.
+3. `interaction_type: supplement_medication` 주의점은 **맨 위에 강조** 표시.
+4. `risk_level: high` 는 접히지 않는 UI.
+5. 건강 정보(나이·체중·영양제·약)는 **저장하지 않는다.** 로그에도 남기지 않는다 (`request_id` 만).

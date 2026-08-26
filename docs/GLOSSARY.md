@@ -60,6 +60,9 @@ A: dosage         B: dose_amount     C: amount      D: qty
 
 ### 3-1. 사용자 입력 (User Input)
 
+> **주체는 영양제(supplement)다.** 약(medication)은 "이 영양제가 그 약이랑 부딪히나?"를
+> 확인하기 위한 **선택 입력**이다. 둘을 섞어 부르지 않는다.
+
 | 한국어 | 표준 영문 | Python / API (`snake_case`) | TS (`camelCase`) | 타입 | 설명 |
 |---|---|---|---|---|---|
 | 사용자 프로필 | user profile | `user_profile` | `userProfile` | object | 나이·성별·체중 묶음 |
@@ -67,45 +70,51 @@ A: dosage         B: dose_amount     C: amount      D: qty
 | 성별 | sex | `sex` | `sex` | enum | `male` \| `female` \| `other` — ⚠️ `gender` 쓰지 않음 |
 | 체중 | weight | `weight_kg` | `weightKg` | float (kg) | 단위를 이름에 포함 |
 | 키 | height | `height_cm` | `heightCm` | float (cm) | 선택 입력 |
-| 복용약 | medication | `medication` | `medication` | object | 사용자가 먹는 약 1건 |
-| 복용약 목록 | medications | `medications` | `medications` | array | 여러 건 |
-| 약 이름 | medication name | `medication_name` | `medicationName` | str | 사용자가 입력한 원문 |
-| 성분 | ingredient | `ingredient` | `ingredient` | str | 약의 주성분 (예: metformin) |
-| 복용량(1회) | dose amount | `dose_amount` | `doseAmount` | float | 숫자만 |
-| 복용 단위 | dose unit | `dose_unit` | `doseUnit` | enum | §4-2 참고 |
-| 복용 횟수 | dose frequency | `dose_frequency` | `doseFrequency` | int | 1일 기준 횟수 |
-| 복용 시각 | intake time | `intake_time` | `intakeTime` | enum | §4-3 참고 |
+| **영양제** | **supplement** | `supplement` | `supplement` | object | ⭐ 사용자가 먹는 영양제 1건 |
+| 영양제 목록 | supplements | `supplements` | `supplements` | array | **필수**, 1개 이상 |
+| 영양제 이름 | supplement name | `supplement_name` | `supplementName` | str | 제품명 또는 성분명 |
+| 함유 영양소 | nutrient | `nutrient` | `nutrient` | str | 예: 비타민 D |
+| 섭취량(1회) | dose amount | `dose_amount` | `doseAmount` | float | 숫자만 |
+| 섭취 단위 | dose unit | `dose_unit` | `doseUnit` | enum | §4-2 |
+| 섭취 횟수 | dose frequency | `dose_frequency` | `doseFrequency` | int | 1일 기준 |
+| 섭취 시각 | intake time | `intake_time` | `intakeTime` | enum | §4-3 |
+| 복용 중인 약 | medication | `medication` | `medication` | object | **선택 입력**. 상호작용 확인용 |
+| 약 목록 | medications | `medications` | `medications` | array | 비어 있어도 됨 (기본 `[]`) |
+| 약 이름 | medication name | `medication_name` | `medicationName` | str | |
+| 약 성분 | ingredient | `ingredient` | `ingredient` | str | 선택 |
 
 ### 3-2. 분석 결과 (Analysis Output)
 
 | 한국어 | 표준 영문 | Python / API | TS | 타입 | 설명 |
 |---|---|---|---|---|---|
-| 분석 요청 | analysis request | `analysis_request` | `analysisRequest` | object | LLM에 보내는 입력 전체 |
-| 분석 결과 | analysis result | `analysis_result` | `analysisResult` | object | LLM 응답 전체 |
-| 영양소 | nutrient | `nutrient` | `nutrient` | object | 비타민/미네랄 등 |
-| 영양소 조합 | nutrient stack | `nutrient_stack` | `nutrientStack` | array | 추천 영양소 묶음 ⚠️ `combo`, `combination` 쓰지 않음 |
-| 권장 섭취량 | recommended dose | `recommended_dose` | `recommendedDose` | str | 예: `"500mg / 1일 1회"` |
-| 추천 사유 | rationale | `rationale` | `rationale` | str | 왜 추천하는지 |
+| 분석 요청 | analysis request | `analysis_request` | `analysisRequest` | object | 입력 전체 |
+| 분석 본문 | analysis body | `analysis_body` | — | object | LLM이 돌려주는 3개 필드 |
+| 분석 결과 | analysis result | `analysis_result` | `analysisResult` | object | 본문 + `request_id` + `disclaimer` |
+| 영양소 조합 | nutrient stack | `nutrient_stack` | `nutrientStack` | array | ⚠️ `combo`, `combination` 쓰지 않음 |
+| 권장 섭취량 | recommended dose | `recommended_dose` | `recommendedDose` | str | 예: `"1000IU / 1일 1회"` |
+| 추천 사유 | rationale | `rationale` | `rationale` | str | |
 | 주의점 | caution | `caution` | `caution` | object | ⚠️ `warning`, `notice` 쓰지 않음 |
 | 주의점 목록 | cautions | `cautions` | `cautions` | array | |
-| 상호작용 | interaction | `interaction` | `interaction` | str | 약–영양소 / 약–약 충돌 |
+| **상호작용 유형** | interaction type | `interaction_type` | `interactionType` | enum | ⭐ 무엇과 무엇이 부딪히는지. §4-5 |
+| 문제되는 영양제 | related supplement | `related_supplement` | `relatedSupplement` | str? | 주의점의 원인 영양제 |
+| 부딪히는 약 | related medication | `related_medication` | `relatedMedication` | str? | 상대 약 이름 |
 | 위험도 | risk level | `risk_level` | `riskLevel` | enum | `low` \| `moderate` \| `high` |
-| 복용시기 | intake timing | `intake_timing` | `intakeTiming` | object | ⚠️ `schedule`, `time_slot` 쓰지 않음 |
-| 복용시기 목록 | intake schedule | `intake_schedule` | `intakeSchedule` | array | 하루 타임라인 |
-| 시간대 | time slot | `time_slot` | `timeSlot` | enum | §4-3 참고 |
-| 간격 두기 | spacing | `spacing_hours` | `spacingHours` | int | 약과 몇 시간 띄울지 |
-| 근거 | evidence | `evidence` | `evidence` | str | 참고 근거/출처 문장 |
-| 면책 문구 | disclaimer | `disclaimer` | `disclaimer` | str | 의료 조언 아님 고지 (§6) |
+| 섭취 시기 | intake timing | `intake_timing` | `intakeTiming` | enum | ⚠️ `schedule` 단독 사용 금지 |
+| 섭취 일정 | intake schedule | `intake_schedule` | `intakeSchedule` | array | 하루 타임라인 |
+| 시간대 | time slot | `time_slot` | `timeSlot` | enum | §4-3 |
+| 간격 두기 | spacing | `spacing_hours` | `spacingHours` | int? | 약과 몇 시간 띄울지 |
+| 근거 | evidence | `evidence` | `evidence` | str? | |
+| 면책 문구 | disclaimer | `disclaimer` | `disclaimer` | str | §6 |
+| 요청 ID | request id | `request_id` | `requestId` | str | 로그 추적용 |
 
 ### 3-3. 시스템/기술 용어
 
 | 한국어 | 표준 영문 | 코드 표기 | 설명 |
 |---|---|---|---|
-| LLM 클라이언트 | llm client | `llm_client` / `LlmClient` | Anthropic API 래퍼 |
-| 프롬프트 빌더 | prompt builder | `prompt_builder` / `build_prompt()` | 입력 → 프롬프트 문자열 |
-| 시스템 프롬프트 | system prompt | `SYSTEM_PROMPT` | 상수 |
-| 응답 스키마 | response schema | `response_schema` | LLM 강제 출력 형식 |
-| 요청 ID | request id | `request_id` | 로그 추적용 |
+| LLM 연결기 | llm provider | `llm_provider` / `LlmProvider` | 외부 LLM 호출 방식의 공통 인터페이스 |
+| 연결 방식 | provider kind | `LLM_PROVIDER` | `mock` \| `http` \| `lambda` |
+| 목 응답 | mock provider | `MockProvider` | AWS 없이 개발할 때 쓰는 고정 응답 |
+| 분석 서비스 | analysis service | `run_analysis()` | 라우터와 LLM 사이. 응답 검증 담당 |
 
 ---
 
@@ -117,14 +126,24 @@ Enum 값은 **여기 적힌 문자열만** 씁니다. 새 값이 필요하면 §
 `male` | `female` | `other`
 
 ### 4-2. `dose_unit`
-`mg` | `g` | `mcg` | `ml` | `iu` | `tablet` | `capsule` | `drop` | `puff`
+`mg` | `g` | `mcg` | `ml` | `iu` | `tablet` | `capsule` | `softgel` | `scoop` | `drop`
 
-### 4-3. `time_slot` / `intake_time`
+### 4-3. `time_slot` / `intake_time` / `intake_timing`
 `morning` | `noon` | `evening` | `bedtime`
 `before_meal` | `with_meal` | `after_meal` | `empty_stomach`
 
 ### 4-4. `risk_level`
 `low` | `moderate` | `high`
+
+### 4-5. `interaction_type`
+
+| 값 | 의미 |
+|---|---|
+| `supplement_medication` | ⭐ 영양제 x 약 — 이 서비스의 핵심 경고 |
+| `supplement_supplement` | 영양제 x 영양제 |
+| `supplement_food` | 영양제 x 음식 (공복/식후 등) |
+| `dose_limit` | 상한 섭취량 초과 |
+| `condition` | 나이·성별·체중 관련 주의 |
 
 ---
 
@@ -163,15 +182,18 @@ Enum 값은 **여기 적힌 문자열만** 씁니다. 새 값이 필요하면 §
 
 | ❌ 쓰지 말 것 | ✅ 표준 용어 |
 |---|---|
-| `drug`, `pill`, `medicine`, `medi` | `medication` |
+| `vitamin`, `pill`, `nutra`, `supple` | `supplement` (영양제) |
+| `drug`, `medicine`, `medi` | `medication` (약) |
+| 영양제를 `medication` 이라 부르는 것 | 영양제는 `supplement`. 둘은 다른 개념 |
 | `dosage`, `amount`, `qty` | `dose_amount` |
 | `gender` | `sex` |
 | `weight` (단위 없음) | `weight_kg` |
 | `combo`, `combination`, `mix` | `nutrient_stack` |
 | `warning`, `notice`, `alert` | `caution` |
+| `conflict`, `clash` | `interaction_type` |
 | `schedule`(단독), `timing`(단독) | `intake_timing` / `intake_schedule` |
 | `result`(단독), `res`, `data` | `analysis_result` |
 | `user_info`, `profile_data` | `user_profile` |
-| `vitamin` (영양소 전체를 가리킬 때) | `nutrient` |
+| `llm`, `ai`, `gpt` (변수명으로) | `llm_provider` |
 
 > 리뷰어는 위 단어가 diff에 보이면 **변경 요청(Request changes)** 합니다.
