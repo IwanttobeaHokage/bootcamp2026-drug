@@ -82,9 +82,7 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
         <ul className="list-plain">
           {result.intakeSchedule.map((item, index) => (
             <li className="schedule" key={index}>
-              <span className="schedule__slot">
-                {TIME_SLOT_LABEL[item.timeSlot]} · {TIME_SLOT_LABEL[item.intakeTiming]}
-              </span>
+              <span className="schedule__slot">{TIME_SLOT_LABEL[item.timeSlot]}</span>
               <span>{item.supplementName}</span>
               {item.spacingHours != null && (
                 <span className="schedule__spacing">약과 {item.spacingHours}시간 간격</span>

@@ -3,7 +3,7 @@ import { camelizeKeys, snakeizeKeys } from "./case";
 
 // Lambda Function URL 은 끝에 / 가 붙어서 나온다. 그대로 두면 경로가 //api/v1/... 이 된다.
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-const TIMEOUT_MS = 35_000; // 백엔드 LLM_TIMEOUT_SECONDS(기본 30초) 보다 약간 길게.
+const TIMEOUT_MS = 70_000; // 타임아웃 체인의 가장 바깥. 백엔드 Lambda(60초)보다 길게.
 
 /** 화면에 그대로 띄울 수 있는 실패 원인. 상태코드별 문구는 여기서만 정한다. */
 export class AnalysisRequestError extends Error {

@@ -8,7 +8,7 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 DISCLAIMER = (
     "본 정보는 일반적인 참고용이며 의학적 진단·처방을 대체하지 않습니다. "
@@ -33,17 +33,23 @@ class DoseUnit(str, Enum):
     softgel = "softgel"
     scoop = "scoop"
     drop = "drop"
+    sachet = "sachet"  # 포. 보통 1.5g 이지만 무게보다 균 수가 중요하다
+    # 유산균은 무게가 아니라 균 수(CFU)로 표시된다. GLOSSARY 4-2 참고.
+    cfu = "cfu"
+    hundred_million_cfu = "hundred_million_cfu"  # 억 CFU. "100억 CFU" -> dose_amount=100
 
 
 class TimeSlot(str, Enum):
-    morning = "morning"
-    noon = "noon"
-    evening = "evening"
-    bedtime = "bedtime"
-    before_meal = "before_meal"
-    with_meal = "with_meal"
-    after_meal = "after_meal"
-    empty_stomach = "empty_stomach"
+    """하루 8개 시점. 시간대와 식사 전후를 한 값에 담는다. GLOSSARY 4-3."""
+
+    wake_up = "wake_up"  # 기상 직후
+    morning_before_meal = "morning_before_meal"
+    morning_after_meal = "morning_after_meal"
+    noon_before_meal = "noon_before_meal"
+    noon_after_meal = "noon_after_meal"
+    evening_before_meal = "evening_before_meal"
+    evening_after_meal = "evening_after_meal"
+    bedtime = "bedtime"  # 취침 전
 
 
 class RiskLevel(str, Enum):
@@ -95,7 +101,21 @@ class Supplement(StrictInput):
     dose_amount: float = Field(gt=0)
     dose_unit: DoseUnit
     dose_frequency: int = Field(ge=1, le=24, description="1일 복용 횟수")
-    intake_time: TimeSlot
+    intake_times: list[TimeSlot] = Field(
+        min_length=1,
+        max_length=24,
+        description="섭취 시각. 개수는 dose_frequency 와 같아야 한다",
+    )
+
+    @model_validator(mode="after")
+    def _times_match_frequency(self) -> "Supplement":
+        # 1일 3회면 시각도 3개다. 개수가 어긋나면 일정표를 만들 수 없다.
+        if len(self.intake_times) != self.dose_frequency:
+            raise ValueError(
+                f"intake_times 는 dose_frequency 와 개수가 같아야 합니다 "
+                f"(dose_frequency={self.dose_frequency}, intake_times={len(self.intake_times)})"
+            )
+        return self
 
 
 class Medication(StrictInput):
@@ -106,7 +126,11 @@ class Medication(StrictInput):
     dose_amount: float | None = Field(default=None, gt=0)
     dose_unit: DoseUnit | None = None
     dose_frequency: int | None = Field(default=None, ge=1, le=24)
-    intake_time: TimeSlot | None = None
+    intake_times: list[TimeSlot] = Field(
+        default_factory=list,
+        max_length=24,
+        description="선택. 약 복용 시각. 비어 있어도 된다",
+    )
 
 
 class AnalysisRequest(StrictInput):
@@ -139,8 +163,8 @@ class CautionItem(StrictInput):
 
 
 class IntakeScheduleItem(StrictInput):
+    # 식전/식후는 time_slot 값 안에 들어 있다. 시기를 나타내는 필드를 따로 두지 않는다.
     time_slot: TimeSlot
-    intake_timing: TimeSlot
     supplement_name: str
     spacing_hours: int | None = Field(
         default=None, ge=0, le=24, description="약과 몇 시간 띄울지"

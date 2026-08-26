@@ -4,6 +4,7 @@
 
 | 무엇 | 어디로 | 무엇이 만드나 |
 |---|---|---|
+| LLM (Bedrock Claude) | Lambda + API Gateway REST API | [infra/llm-template.yaml](../infra/llm-template.yaml) (SAM) |
 | 백엔드 (FastAPI) | Lambda + Function URL | [infra/template.yaml](../infra/template.yaml) (SAM) |
 | 프론트 (Vite 빌드) | S3 + CloudFront | [scripts/deploy_web.sh](../scripts/deploy_web.sh) |
 
@@ -237,6 +238,54 @@ HTTPS(CloudFront)로 넘어가는 순간 이 정책은 지우고 (1) 로 갈아�
 
 ---
 
+## 4-2. LLM 배포 (Bedrock + API Gateway)
+
+```bash
+scripts/deploy_llm.sh
+```
+
+[infra/llm/handler.py](../infra/llm/handler.py) 가 계약([LLM_CONTRACT.md](./LLM_CONTRACT.md)) 요청을 받아
+Bedrock 의 Claude 를 부르고 계약 응답을 돌려줍니다. 스택 이름 기본값은 `bootcamp2026-llm`.
+
+스크립트는 **엔드포인트와 API 키를 stdout 두 줄로만** 내보냅니다. `deploy_all.sh` 가 그걸 받아
+백엔드의 `LLM_API_BASE_URL` / `LLM_API_KEY` 로 넘깁니다. **키를 사람이 복사해 옮길 일이 없습니다.**
+
+### 모델과 지연 시간
+
+| 모델 (`ModelId`) | effort=low 응답 | API Gateway 29초 한도 |
+|---|---|---|
+| `global.anthropic.claude-sonnet-5` (기본값) | 약 14초 | 여유 있음 |
+| `global.anthropic.claude-opus-5` | 24~26초 | **아슬아슬. 입력이 길면 504** |
+
+- 모델 ID 는 반드시 **추론 프로파일**(`global.` 접두사)이어야 합니다. on-demand ID 는 Bedrock 이 거부합니다.
+- 더 꼼꼼한 답이 필요하면 `LLM_EFFORT=medium|high`. 그만큼 느려집니다.
+- Opus 5 로 바꾸려면 통합 타임아웃 한도부터 올려야 합니다 (아래).
+
+### 타임아웃 체인
+
+짧은 쪽이 먼저 끊습니다. 한 군데만 늘리면 소용없습니다.
+
+```
+프론트 fetch 70s  >  백엔드 Lambda 60s  >  백엔드 httpx(LLM_TIMEOUT_SECONDS) 45s  >  API Gateway 통합 29s
+                                                                                      └ LLM Lambda 자체는 120s
+```
+
+API Gateway REST API 의 통합 타임아웃 29초는 **서비스 쿼터** `L-E5AE38E3` 입니다(조정 가능).
+상향이 승인되면 `INTEGRATION_TIMEOUT_MS` 를 올리고, `LlmTimeoutSeconds`·백엔드 Lambda `Timeout`·
+프론트 `TIMEOUT_MS` 를 그 위로 함께 올립니다.
+
+```bash
+aws service-quotas request-service-quota-increase --service-code apigateway --quota-code L-E5AE38E3 --desired-value 120000 --region ap-northeast-2
+```
+
+### API 키
+
+API Gateway 가 `x-api-key` 헤더를 직접 검증합니다. 백엔드의
+[http_provider.py](../backend/app/services/llm/http_provider.py) 가 이미 그 헤더를 보내므로 코드 수정이 없습니다.
+사용량 계획으로 초당 5회 / 하루 2000회 제한이 걸려 있습니다.
+
+---
+
 ## 5. 백엔드 배포 (Lambda)
 
 FastAPI 를 고치지 않고 [backend/app/lambda_handler.py](../backend/app/lambda_handler.py) 가 Lambda 이벤트를 ASGI 로 번역합니다.
@@ -269,9 +318,10 @@ WEB_BUCKET=bipa-final-bucket CLOUDFRONT_DISTRIBUTION_ID=E2ARG39AU2O8WS scripts/d
 [scripts/deploy_all.sh](../scripts/deploy_all.sh) 가 하는 일:
 
 1. CloudFront 배포 ID → **프론트 도메인** 조회 (`CORS_ORIGINS` 를 따로 안 적어도 됨)
-2. 그 도메인을 `CORS_ORIGINS` 로 넣어 **백엔드 배포** → API 주소 회수
-3. 그 API 주소를 `VITE_API_BASE_URL` 로 박아 **프론트 빌드 + S3 업로드 + 캐시 무효화**
-4. `GET /health` 와 프론트 `/` 를 실제로 찔러보고 200 이 아니면 **실패로 끝냄**
+2. **LLM 스택 배포** → 엔드포인트와 API 키 회수 (`DEPLOY_LLM=no` 로 건너뛰면 백엔드가 mock 으로 뜸)
+3. 그 값들과 도메인을 넣어 **백엔드 배포** → API 주소 회수
+4. 그 API 주소를 `VITE_API_BASE_URL` 로 박아 **프론트 빌드 + S3 업로드 + 캐시 무효화**
+5. `GET /health` 와 프론트 `/` 를 실제로 찔러보고 200 이 아니면 **실패로 끝냄**
 
 3-4번 사이가 흔한 사고 지점입니다. 업로드는 성공했는데 화면이 403 이면 CloudFront 설정 문제이고,
 스크립트가 그 사실을 배포 로그에서 바로 알려줍니다.
@@ -295,9 +345,12 @@ verify(용어 검사 · pytest · 프론트 빌드)  →  deploy(백엔드 → �
 | `AWS_DEPLOY_ROLE_ARN` | GitHub OIDC 로 assume 할 IAM Role ARN |
 | `WEB_BUCKET` | 프론트 버킷 이름 |
 | `CLOUDFRONT_DISTRIBUTION_ID` | 배포 ID (여기서 프론트 도메인을 역으로 구합니다) |
-| `LLM_API_BASE_URL` / `LLM_API_KEY` | (선택) 외부 AWS LLM 주소·키 |
+| `SAM_ARTIFACT_BUCKET` | SAM 빌드 산출물을 둘 버킷. 비워두면 `--resolve-s3` 로 SAM 이 관리 버킷을 직접 만드는데, 그러면 배포 Role 에 관리 스택 생성 권한이 더 필요합니다 |
 
-Variables(선택): `LLM_PROVIDER` — 안 넣으면 `mock`.
+
+LLM 주소·키는 **시크릿이 아닙니다.** 배포 중에 LLM 스택 출력에서 읽어 백엔드로 넘깁니다.
+
+Variables(선택): `DEPLOY_LLM`(기본 `yes`), `BEDROCK_MODEL_ID`, `LLM_EFFORT`.
 
 ### 배포 Role 에 추가로 필요한 권한
 
@@ -308,10 +361,22 @@ Variables(선택): `LLM_PROVIDER` — 안 넣으면 `mock`.
 | CloudFormation | `cloudformation:*` (스택 `bootcamp2026-api/*` 로 좁힐 것) |
 | Lambda | `lambda:*` (함수 이름으로 좁힐 것) |
 | IAM | `iam:CreateRole`, `iam:AttachRolePolicy`, `iam:PutRolePolicy`, `iam:PassRole`, `iam:GetRole`, `iam:DeleteRole`, `iam:DetachRolePolicy`, `iam:TagRole` |
-| S3 (SAM 아티팩트) | `s3:*` on `arn:aws:s3:::aws-sam-cli-managed-*` |
+| S3 (SAM 아티팩트) | `s3:ListBucket`, `s3:GetObject`, `s3:PutObject` on `SAM_ARTIFACT_BUCKET` |
 | CloudWatch Logs | `logs:CreateLogGroup`, `logs:PutRetentionPolicy`, `logs:DescribeLogGroups`, `logs:DeleteLogGroup` |
+| API Gateway (LLM 스택) | `apigateway:GET/POST/PUT/PATCH/DELETE` on `arn:aws:apigateway:<region>::/*` |
 
 > `iam:*` 를 통째로 주지 마세요. 위 목록이면 SAM 이 Lambda 실행 역할을 만들고 지우는 데 충분합니다.
+
+리소스는 이름으로 좁힙니다. 실제로 적용된 범위:
+
+| 대상 | 리소스 패턴 |
+|---|---|
+| CloudFormation | `stack/bootcamp2026-api/*`, `stack/bootcamp2026-llm/*` (+ SAM 변환) |
+| Lambda | `function:bootcamp2026-*` |
+| IAM (Lambda 실행 역할) | `role/bootcamp2026-*` |
+| CloudWatch Logs | `log-group:/aws/lambda/bootcamp2026-*` |
+
+스택 이름(`STACK_NAME`)을 바꾸면 이 패턴들도 같이 바꿔야 합니다.
 
 ---
 

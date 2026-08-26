@@ -51,13 +51,14 @@ class MockProvider:
                 }
             ],
             "cautions": cautions,
+            # 입력받은 시각을 그대로 일정으로 돌려준다(1일 n회면 n줄).
             "intake_schedule": [
                 {
-                    "time_slot": "morning",
-                    "intake_timing": "after_meal",
+                    "time_slot": slot.value,
                     "supplement_name": first.supplement_name,
                     "spacing_hours": 2 if medication_name else None,
                     "avoid_with": [medication_name] if medication_name else [],
                 }
+                for slot in first.intake_times
             ],
         }
