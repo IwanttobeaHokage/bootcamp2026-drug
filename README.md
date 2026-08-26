@@ -92,6 +92,15 @@ uvicorn app.main:app --reload
 
 → http://localhost:8000/docs (`.env` 그대로 두면 mock 으로 동작)
 
+`.env` 를 고쳤는데 반영이 안 되는 것 같으면 `/health` 를 확인하세요.
+
+```bash
+curl http://localhost:8000/health
+# {"status":"ok","llm_provider":"http","llm_endpoint_configured":"yes"}
+```
+
+`llm_provider` 가 바뀌지 않았다면 서버를 재시작해야 합니다.
+
 ### 2. 프론트엔드
 
 ```bash

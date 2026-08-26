@@ -5,6 +5,13 @@ LLM 은 우리가 직접 호출하지 않는다. 외부(AWS) 담당자가 올린
 """
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# backend/.env 를 읽어서 환경변수로 올린다.
+# 이미 셸이나 배포 환경에 설정된 값이 있으면 그쪽을 우선한다(override=False).
+load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
 
 # --- 서버 ---------------------------------------------------------------
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
