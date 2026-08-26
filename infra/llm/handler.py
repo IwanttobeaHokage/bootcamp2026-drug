@@ -48,6 +48,10 @@ SYSTEM_PROMPT = """당신은 약사와 영양사의 참고 자료를 정리해 �
 8. 정해진 JSON 스키마로만 답합니다. 모든 서술은 한국어로 작성합니다.
 9. 분량을 지킵니다. 주의점은 중요한 순서로 최대 5개, 영양소는 최대 5개.
    각 rationale 과 caution 은 두 문장을 넘기지 않습니다.
+10. intake_schedule 은 사용자가 적어 낸 섭취 시각을 기준으로 만듭니다.
+    1일 n회면 그 n개 시점이 모두 나와야 합니다.
+11. 단위가 hundred_million_cfu(억 CFU) / cfu / sachet(포) 이면 유산균류입니다.
+    권장량도 무게(g, mg)가 아니라 균 수(CFU)로 적습니다.
 """
 
 
@@ -68,10 +72,11 @@ def build_prompt(payload: dict) -> str:
     lines += ["", "[먹고 있는 영양제]"]
     for i, item in enumerate(payload.get("supplements", []), start=1):
         nutrient = f" ({item['nutrient']})" if item.get("nutrient") else ""
+        times = "/".join(item.get("intake_times") or [])
         lines.append(
             f"{i}. {item.get('supplement_name')}{nutrient} — "
             f"1회 {item.get('dose_amount')}{item.get('dose_unit')}, "
-            f"1일 {item.get('dose_frequency')}회, {item.get('intake_time')}"
+            f"1일 {item.get('dose_frequency')}회, 섭취시각 {times}"
         )
 
     medications = payload.get("medications") or []

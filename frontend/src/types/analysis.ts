@@ -10,11 +10,17 @@ export type Sex = "male" | "female" | "other";
 
 export type DoseUnit =
   | "mg" | "g" | "mcg" | "ml" | "iu"
-  | "tablet" | "capsule" | "softgel" | "scoop" | "drop";
+  | "tablet" | "capsule" | "softgel" | "scoop" | "drop" | "sachet"
+  /** 유산균은 무게가 아니라 균 수로 표시된다. GLOSSARY 4-2 */
+  | "cfu" | "hundred_million_cfu";
 
+/** 하루 8개 시점. 식전/식후가 값 안에 들어 있다. GLOSSARY 4-3 */
 export type TimeSlot =
-  | "morning" | "noon" | "evening" | "bedtime"
-  | "before_meal" | "with_meal" | "after_meal" | "empty_stomach";
+  | "wake_up"
+  | "morning_before_meal" | "morning_after_meal"
+  | "noon_before_meal" | "noon_after_meal"
+  | "evening_before_meal" | "evening_after_meal"
+  | "bedtime";
 
 export type RiskLevel = "low" | "moderate" | "high";
 
@@ -42,7 +48,8 @@ export interface Supplement {
   doseAmount: number;
   doseUnit: DoseUnit;
   doseFrequency: number;
-  intakeTime: TimeSlot;
+  /** 개수는 doseFrequency 와 같아야 한다. 1일 3회면 3개. */
+  intakeTimes: TimeSlot[];
 }
 
 /** 복용 중인 약. 선택 입력. 영양제와의 상호작용 확인에만 쓴다. */
@@ -52,7 +59,7 @@ export interface Medication {
   doseAmount?: number;
   doseUnit?: DoseUnit;
   doseFrequency?: number;
-  intakeTime?: TimeSlot;
+  intakeTimes: TimeSlot[];
 }
 
 export interface AnalysisRequest {
@@ -78,8 +85,8 @@ export interface CautionItem {
 }
 
 export interface IntakeScheduleItem {
+  /** 값 자체에 식전/식후가 들어 있다. 시기 필드를 따로 두지 않는다. */
   timeSlot: TimeSlot;
-  intakeTiming: TimeSlot;
   supplementName: string;
   spacingHours?: number | null;
   /** 이 시간대에 함께 섭취를 피할 영양제·약 이름 */

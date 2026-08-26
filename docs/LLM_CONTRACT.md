@@ -31,19 +31,23 @@
       "nutrient": "비타민 D",
       "dose_amount": 1000,
       "dose_unit": "iu",
-      "dose_frequency": 1,
-      "intake_time": "with_meal"
+      "dose_frequency": 2,
+      "intake_times": ["morning_after_meal", "evening_after_meal"]
     }
   ],
   "medications": [
     { "medication_name": "와파린", "ingredient": null,
       "dose_amount": null, "dose_unit": null,
-      "dose_frequency": null, "intake_time": null }
+      "dose_frequency": null, "intake_times": [] }
   ]
 }
 ```
 
 - `supplements` 는 **항상 1개 이상** 옵니다.
+- `intake_times` 의 **개수는 `dose_frequency` 와 같습니다.** 1일 2회면 시각도 2개입니다.
+  일정(`intake_schedule`)은 이 시각들을 모두 반영해 주세요.
+- 단위가 `hundred_million_cfu`(억 CFU) / `cfu` / `sachet`(포) 이면 유산균류입니다.
+  권장량도 무게가 아니라 균 수로 적어 주세요.
 - `medications` 는 **비어 있을 수 있습니다** (`[]`). 비어 있으면 영양제끼리만 분석.
 - Enum 값은 [GLOSSARY.md §4](./GLOSSARY.md#4-표준-enum-값) 에 정의된 문자열만 옵니다.
 
@@ -76,8 +80,7 @@
   ],
   "intake_schedule": [
     {
-      "time_slot": "morning",
-      "intake_timing": "after_meal",
+      "time_slot": "morning_after_meal",
       "supplement_name": "비타민 D 1000IU",
       "spacing_hours": 2,
       "avoid_with": ["와파린"]
@@ -100,8 +103,7 @@
 | `cautions[].related_supplement` | ⬜ | 문자열 또는 `null` |
 | `cautions[].related_medication` | ⬜ | 문자열 또는 `null` |
 | `cautions[].risk_level` | ✅ | `low` \| `moderate` \| `high` |
-| `intake_schedule[].time_slot` | ✅ | GLOSSARY §4-3 값 |
-| `intake_schedule[].intake_timing` | ✅ | GLOSSARY §4-3 값 |
+| `intake_schedule[].time_slot` | ✅ | GLOSSARY §4-3 의 8개 값. 식전/식후가 값 안에 들어 있다 |
 | `intake_schedule[].supplement_name` | ✅ | 문자열 |
 | `intake_schedule[].spacing_hours` | ⬜ | 정수 0–24 또는 `null` |
 | `intake_schedule[].avoid_with` | ⬜ | 그 시간대에 함께 먹으면 안 되는 영양제·약 이름 배열. 없으면 `[]` |

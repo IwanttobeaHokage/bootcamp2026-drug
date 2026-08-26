@@ -39,7 +39,7 @@ def build_prompt(request: AnalysisRequest) -> str:
         lines.append(
             f"{i}. {item.supplement_name}{nutrient} — "
             f"1회 {item.dose_amount}{item.dose_unit.value}, "
-            f"1일 {item.dose_frequency}회, 섭취시기 {item.intake_time.value}"
+            f"1일 {item.dose_frequency}회, 섭취시각 {'/'.join(t.value for t in item.intake_times)}"
         )
 
     if request.medications:

@@ -33,6 +33,9 @@ BANNED = [
     (r"(?<!bootcamp2026-)\bdrug\b", "medication", "GLOSSARY 7"),
     # logger.warning 처럼 점 뒤에 오는 표준 API 호출은 금지어가 아니다.
     (r"(?<!\.)\bwarning\b", "caution / riskLevel", "GLOSSARY 3-2"),
+    # 섭취 시각은 1일 횟수만큼 배열로 받는다. 단수형과 옛 필드는 쓰지 않는다.
+    (r"\bintake_time\b|\bintakeTime\b", "intake_times / intakeTimes", "GLOSSARY 3-1"),
+    (r"\bintake_timing\b|\bintakeTiming\b", "time_slot / timeSlot", "GLOSSARY 3-2"),
 ]
 
 # 코드가 있어도 되는 곳. 이 밖에 소스 파일이 있으면 잘못 놓인 것이다.

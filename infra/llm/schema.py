@@ -4,9 +4,13 @@ docs/LLM_CONTRACT.md 2절 = backend/app/schemas/analysis.py 의 AnalysisBody 와
 셋 중 하나가 바뀌면 나머지도 같이 바꾼다. 여기 없는 키를 넣으면 백엔드가 422 로 거절한다.
 """
 
+# 하루 8개 시점. 시간대와 식사 전후가 한 값에 들어 있다. GLOSSARY 4-3.
 TIME_SLOTS = [
-    "morning", "noon", "evening", "bedtime",
-    "before_meal", "with_meal", "after_meal", "empty_stomach",
+    "wake_up",
+    "morning_before_meal", "morning_after_meal",
+    "noon_before_meal", "noon_after_meal",
+    "evening_before_meal", "evening_after_meal",
+    "bedtime",
 ]
 
 NUTRIENT_ITEM = {
@@ -54,15 +58,11 @@ INTAKE_SCHEDULE_ITEM = {
     "type": "object",
     "properties": {
         "time_slot": {"type": "string", "enum": TIME_SLOTS},
-        "intake_timing": {"type": "string", "enum": TIME_SLOTS},
         "supplement_name": {"type": "string"},
         "spacing_hours": {"type": ["integer", "null"], "minimum": 0, "maximum": 24},
         "avoid_with": {"type": "array", "items": {"type": "string"}},
     },
-    "required": [
-        "time_slot", "intake_timing", "supplement_name",
-        "spacing_hours", "avoid_with",
-    ],
+    "required": ["time_slot", "supplement_name", "spacing_hours", "avoid_with"],
     "additionalProperties": False,
 }
 

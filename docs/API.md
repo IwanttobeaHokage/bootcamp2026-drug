@@ -29,7 +29,7 @@ Base URL: `http://localhost:8000`
       "dose_amount": 1000,
       "dose_unit": "iu",
       "dose_frequency": 1,
-      "intake_time": "with_meal"
+      "intake_times": ["morning_after_meal"]
     }
   ],
   "medications": [
@@ -68,10 +68,10 @@ Base URL: `http://localhost:8000`
   ],
   "intake_schedule": [
     {
-      "time_slot": "morning",
-      "intake_timing": "after_meal",
+      "time_slot": "morning_after_meal",
       "supplement_name": "비타민 D 1000IU",
-      "spacing_hours": 2
+      "spacing_hours": 2,
+      "avoid_with": ["와파린"]
     }
   ],
   "disclaimer": "본 정보는 일반적인 참고용이며 의학적 진단·처방을 대체하지 않습니다. 복용 중인 약이 있다면 반드시 의사 또는 약사와 상담하세요."
