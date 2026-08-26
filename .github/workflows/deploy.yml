@@ -1,0 +1,77 @@
+# main 에 머지되면 백엔드(Lambda) -> 프론트(S3/CloudFront) 순서로 배포한다.
+# 손으로 돌리려면 Actions 탭에서 Run workflow.
+# 설명: docs/DEPLOY.md
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# OIDC 로 IAM Role 을 assume 한다. 액세스 키를 저장소에 두지 않는다.
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-2
+  STACK_NAME: bootcamp2026-api
+
+jobs:
+  verify:
+    name: 검사 (용어 / 백엔드 / 프론트)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: python scripts/check_glossary.py
+      - run: pip install -r backend/requirements.txt
+      - run: pytest
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
+  deploy:
+    name: 배포 (백엔드 -> 프론트)
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Lambda 런타임(python3.11)과 같은 버전으로 빌드해야 컴파일된 의존성이 맞는다.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: aws-actions/setup-sam@v2
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - run: npm ci
+        working-directory: frontend
+
+      - name: 배포
+        env:
+          WEB_BUCKET: ${{ secrets.WEB_BUCKET }}
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+          # LLM 연결 정보. 없으면 mock 으로 뜬다(앱은 그대로 동작).
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'mock' }}
+          LLM_API_BASE_URL: ${{ secrets.LLM_API_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: scripts/deploy_all.sh
