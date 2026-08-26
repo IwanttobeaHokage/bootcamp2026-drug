@@ -6,6 +6,11 @@
 우리 백엔드는 LLM 을 **직접 호출하지 않습니다.** 이 계약만 지키면
 모델이 Claude든 GPT든, Bedrock이든 상관하지 않습니다.
 
+> ✅ **이 계약의 구현이 이제 저장소 안에 있습니다.** [`infra/llm/`](../infra/llm/) —
+> Bedrock(Claude) 을 API Gateway REST API 뒤에 두는 Lambda 입니다.
+> 배포는 `scripts/deploy_llm.sh`, 자세한 건 [DEPLOY.md](./DEPLOY.md).
+> 다른 구현으로 갈아끼워도 됩니다. 백엔드는 주소와 키만 봅니다.
+
 ---
 
 ## 1. 우리가 보내는 것 (Request)
@@ -26,19 +31,23 @@
       "nutrient": "비타민 D",
       "dose_amount": 1000,
       "dose_unit": "iu",
-      "dose_frequency": 1,
-      "intake_time": "with_meal"
+      "dose_frequency": 2,
+      "intake_times": ["morning_after_meal", "evening_after_meal"]
     }
   ],
   "medications": [
     { "medication_name": "와파린", "ingredient": null,
       "dose_amount": null, "dose_unit": null,
-      "dose_frequency": null, "intake_time": null }
+      "dose_frequency": null, "intake_times": [] }
   ]
 }
 ```
 
 - `supplements` 는 **항상 1개 이상** 옵니다.
+- `intake_times` 의 **개수는 `dose_frequency` 와 같습니다.** 1일 2회면 시각도 2개입니다.
+  일정(`intake_schedule`)은 이 시각들을 모두 반영해 주세요.
+- 단위가 `hundred_million_cfu`(억 CFU) / `cfu` / `sachet`(포) 이면 유산균류입니다.
+  권장량도 무게가 아니라 균 수로 적어 주세요.
 - `medications` 는 **비어 있을 수 있습니다** (`[]`). 비어 있으면 영양제끼리만 분석.
 - Enum 값은 [GLOSSARY.md §4](./GLOSSARY.md#4-표준-enum-값) 에 정의된 문자열만 옵니다.
 
@@ -71,8 +80,7 @@
   ],
   "intake_schedule": [
     {
-      "time_slot": "morning",
-      "intake_timing": "after_meal",
+      "time_slot": "morning_after_meal",
       "supplement_name": "비타민 D 1000IU",
       "spacing_hours": 2,
       "avoid_with": ["와파린"]
@@ -95,8 +103,7 @@
 | `cautions[].related_supplement` | ⬜ | 문자열 또는 `null` |
 | `cautions[].related_medication` | ⬜ | 문자열 또는 `null` |
 | `cautions[].risk_level` | ✅ | `low` \| `moderate` \| `high` |
-| `intake_schedule[].time_slot` | ✅ | GLOSSARY §4-3 값 |
-| `intake_schedule[].intake_timing` | ✅ | GLOSSARY §4-3 값 |
+| `intake_schedule[].time_slot` | ✅ | GLOSSARY §4-3 의 8개 값. 식전/식후가 값 안에 들어 있다 |
 | `intake_schedule[].supplement_name` | ✅ | 문자열 |
 | `intake_schedule[].spacing_hours` | ⬜ | 정수 0–24 또는 `null` |
 | `intake_schedule[].avoid_with` | ⬜ | 그 시간대에 함께 먹으면 안 되는 영양제·약 이름 배열. 없으면 `[]` |
@@ -172,3 +179,21 @@ LLM_PROVIDER=mock
 - [ ] CORS 는 신경 안 써도 됩니다 — 브라우저가 아니라 **우리 서버가 호출**합니다
 - [ ] 타임아웃은 30초 기준입니다. 더 필요하면 알려주세요 (`LLM_TIMEOUT_SECONDS`)
 - [ ] 응답 예시 1건을 위 형식대로 보내주시면 바로 붙여보겠습니다
+
+---
+
+## 6. 저장소 안의 기본 구현 (`infra/llm/`)
+
+| 파일 | 내용 |
+|---|---|
+| `infra/llm/handler.py` | 요청 JSON → 프롬프트 → Bedrock 호출 → 계약 JSON |
+| `infra/llm/schema.py` | 응답 JSON 스키마. 2절 표와 같아야 한다 |
+| `infra/llm-template.yaml` | Lambda + API Gateway REST API + API key + 사용량 계획 |
+
+**Bedrock 에서 확인된 제약** (2026-08 기준, ap-northeast-2):
+
+- `output_config.format`(구조화 출력)과 `tools[].strict` 는 **둘 다 400 으로 거부**된다.
+  그래서 스키마는 *도구 하나를 강제로 쓰게 하는* 방식(`tool_choice`)으로 지킨다.
+  최종 검증은 백엔드의 `AnalysisBody` 가 한다.
+- on-demand 모델 ID(`anthropic.claude-opus-5`)는 거부된다. **추론 프로파일 ID**(`global.` 접두사)를 써야 한다.
+- `output_config.effort` 는 동작한다. 지연 시간을 줄이는 주 레버다.

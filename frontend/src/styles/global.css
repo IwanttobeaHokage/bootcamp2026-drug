@@ -386,6 +386,28 @@ button:active:not(:disabled) {
   color: var(--accent);
 }
 
+/* 1일 n회면 시각 칸도 n개. 좁은 화면에서는 한 줄에 하나씩. */
+.time-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.field__sublabel {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.field__hint {
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .schedule__spacing {
   font-size: 0.8125rem;
   color: var(--risk-moderate);

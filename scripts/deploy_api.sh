@@ -5,8 +5,10 @@
 #   CORS_ORIGINS=https://xxxx.cloudfront.net scripts/deploy_api.sh
 #
 # 선택:
-#   STACK_NAME   기본 bootcamp2026-api
-#   AWS_REGION   기본 ap-northeast-2
+#   STACK_NAME           기본 bootcamp2026-api
+#   AWS_REGION           기본 ap-northeast-2
+#   SAM_ARTIFACT_BUCKET  빌드 산출물 버킷. 없으면 --resolve-s3 로 SAM 이 직접 만든다
+#                        (그 경우 배포 Role 에 관리 스택 생성 권한이 더 필요하다)
 #   LLM_PROVIDER / LLM_API_BASE_URL / LLM_API_PATH / LLM_API_KEY / LLM_TIMEOUT_SECONDS
 #
 # 성공하면 마지막 줄에 API 주소만 출력한다(다른 스크립트가 받아쓸 수 있게).
@@ -25,10 +27,16 @@ echo "[deploy_api] 1/3 빌드" >&2
 sam build --template "$ROOT/infra/template.yaml" >&2
 
 echo "[deploy_api] 2/3 배포 (stack=$STACK_NAME)" >&2
+if [ -n "${SAM_ARTIFACT_BUCKET:-}" ]; then
+  ARTIFACT_ARGS=(--s3-bucket "$SAM_ARTIFACT_BUCKET" --s3-prefix "$STACK_NAME")
+else
+  ARTIFACT_ARGS=(--resolve-s3)
+fi
+
 sam deploy \
   --stack-name "$STACK_NAME" \
   --region "$AWS_REGION" \
-  --resolve-s3 \
+  "${ARTIFACT_ARGS[@]}" \
   --capabilities CAPABILITY_IAM \
   --no-confirm-changeset \
   --no-fail-on-empty-changeset \

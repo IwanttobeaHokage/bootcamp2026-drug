@@ -26,15 +26,16 @@ Parameters:
     NoEcho: true
   LlmTimeoutSeconds:
     Type: String
-    Default: "30"
+    Default: "45"
 
 Globals:
   Function:
     Runtime: python3.11
     Architectures: [x86_64]
     MemorySize: 512
-    # LLM_TIMEOUT_SECONDS(기본 30) 보다 길어야 502 대신 제대로 된 오류가 나간다.
-    Timeout: 40
+    # 타임아웃 체인: LLM API Gateway 29s < 백엔드 httpx 45s < 이 Lambda 60s < 프론트 70s.
+    # 한쪽만 늘리면 짧은 쪽이 먼저 끊어서 502 로 뭉개진다. docs/DEPLOY.md 참고.
+    Timeout: 60
 
 Resources:
   ApiFunction:

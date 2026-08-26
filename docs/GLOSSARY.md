@@ -75,12 +75,13 @@ A: dosage         B: dose_amount     C: amount      D: qty
 | 영양제 이름 | supplement name | `supplement_name` | `supplementName` | str | 제품명 또는 성분명 |
 | 함유 영양소 | nutrient | `nutrient` | `nutrient` | str | 예: 비타민 D |
 | 섭취량(1회) | dose amount | `dose_amount` | `doseAmount` | float | 숫자만 |
-| 섭취 단위 | dose unit | `dose_unit` | `doseUnit` | enum | §4-2 |
+| 섭취 단위 | dose unit | `dose_unit` | `doseUnit` | enum | §4-2. 유산균은 g/mg 대신 CFU 단위를 쓴다 |
 | 섭취 횟수 | dose frequency | `dose_frequency` | `doseFrequency` | int | 1일 기준 |
-| 섭취 시각 | intake time | `intake_time` | `intakeTime` | enum | §4-3 |
+| 섭취 시각 목록 | intake times | `intake_times` | `intakeTimes` | array | §4-3 값의 배열. **길이 = `dose_frequency`** (1일 3회면 3개). ⚠️ 단수 `intake_time` 쓰지 않음 |
 | 복용 중인 약 | medication | `medication` | `medication` | object | **선택 입력**. 상호작용 확인용 |
 | 약 목록 | medications | `medications` | `medications` | array | 비어 있어도 됨 (기본 `[]`) |
 | 약 이름 | medication name | `medication_name` | `medicationName` | str | |
+| 약 복용 시각 | medication intake times | `intake_times` | `intakeTimes` | array | 선택. 비어 있어도 됨 |
 | 약 성분 | ingredient | `ingredient` | `ingredient` | str | 선택 |
 
 ### 3-2. 분석 결과 (Analysis Output)
@@ -100,9 +101,8 @@ A: dosage         B: dose_amount     C: amount      D: qty
 | 문제되는 영양제 | related supplement | `related_supplement` | `relatedSupplement` | str? | 주의점의 원인 영양제 |
 | 부딪히는 약 | related medication | `related_medication` | `relatedMedication` | str? | 상대 약 이름 |
 | 위험도 | risk level | `risk_level` | `riskLevel` | enum | `low` \| `moderate` \| `high` |
-| 섭취 시기 | intake timing | `intake_timing` | `intakeTiming` | enum | ⚠️ `schedule` 단독 사용 금지 |
 | 섭취 일정 | intake schedule | `intake_schedule` | `intakeSchedule` | array | 하루 타임라인 |
-| 시간대 | time slot | `time_slot` | `timeSlot` | enum | §4-3 |
+| 시간대 | time slot | `time_slot` | `timeSlot` | enum | §4-3. 식전/식후가 값 안에 들어 있다. ⚠️ 별도 `intake_timing` 을 두지 않음 |
 | 간격 두기 | spacing | `spacing_hours` | `spacingHours` | int? | 약과 몇 시간 띄울지 |
 | **같이 먹지 말 것** | avoid with | `avoid_with` | `avoidWith` | array | ⭐ 이 시간대에 함께 섭취를 피할 영양제·약 이름 |
 | 근거 | evidence | `evidence` | `evidence` | str? | |
@@ -128,11 +128,35 @@ Enum 값은 **여기 적힌 문자열만** 씁니다. 새 값이 필요하면 §
 `male` | `female` | `other`
 
 ### 4-2. `dose_unit`
-`mg` | `g` | `mcg` | `ml` | `iu` | `tablet` | `capsule` | `softgel` | `scoop` | `drop`
 
-### 4-3. `time_slot` / `intake_time` / `intake_timing`
-`morning` | `noon` | `evening` | `bedtime`
-`before_meal` | `with_meal` | `after_meal` | `empty_stomach`
+`mg` | `g` | `mcg` | `ml` | `iu` | `tablet` | `capsule` | `softgel` | `scoop` | `drop` | `sachet` | `cfu` | `hundred_million_cfu`
+
+**유산균(프로바이오틱스)은 무게 단위가 의미 없습니다.** 제품 표시가 균 수(CFU)이기 때문입니다.
+
+| 값 | 한국어 | 언제 |
+|---|---|---|
+| `hundred_million_cfu` | 억 CFU | 유산균 기본. 제품에 "100억 CFU" 로 적힌 그대로 `dose_amount: 100` |
+| `cfu` | CFU | 균 수를 그대로 적을 때 (예: `10000000000`) |
+| `sachet` | 포 | 스틱형 분말 1포. 보통 1.5g 이지만 무게보다 균 수가 중요하다 |
+
+> 참고: 1포 ≈ 1.5g, 1캡슐 ≈ 400~500mg. 이 무게는 대부분 부형제라서
+> `g`/`mg` 로 적으면 실제 섭취량 비교가 되지 않습니다.
+
+### 4-3. `time_slot` / `intake_times`
+
+**하루 8개 시점.** 시간대와 식사 전후를 한 값에 담습니다.
+예전처럼 `morning` + `after_meal` 두 축으로 나누지 않습니다 (조합이 어긋난 값이 나왔기 때문).
+
+| 값 | 한국어 |
+|---|---|
+| `wake_up` | 기상 직후 |
+| `morning_before_meal` | 아침 식전 |
+| `morning_after_meal` | 아침 식후 |
+| `noon_before_meal` | 점심 식전 |
+| `noon_after_meal` | 점심 식후 |
+| `evening_before_meal` | 저녁 식전 |
+| `evening_after_meal` | 저녁 식후 |
+| `bedtime` | 취침 전 |
 
 ### 4-4. `risk_level`
 `low` | `moderate` | `high`
@@ -204,7 +228,9 @@ Enum 값은 **여기 적힌 문자열만** 씁니다. 새 값이 필요하면 §
 | `combo`, `combination`, `mix` | `nutrient_stack` |
 | `warning`, `notice`, `alert` | `caution` |
 | `conflict`, `clash` | `interaction_type` |
-| `schedule`(단독), `timing`(단독) | `intake_timing` / `intake_schedule` |
+| `schedule`(단독), `timing`(단독) | `time_slot` / `intake_schedule` |
+| `intake_time`(단수), `intake_timing` | `intake_times` (입력) / `time_slot` (출력) |
+| `morning`, `after_meal` 등 옛 시간대 값 | §4-3 의 8개 값 |
 | `result`(단독), `res`, `data` | `analysis_result` |
 | `user_info`, `profile_data` | `user_profile` |
 | `llm`, `ai`, `gpt` (변수명으로) | `llm_provider` |

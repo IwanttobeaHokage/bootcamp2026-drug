@@ -16,7 +16,7 @@ VALID_REQUEST = {
             "dose_amount": 1000,
             "dose_unit": "iu",
             "dose_frequency": 1,
-            "intake_time": "with_meal",
+            "intake_times": ["morning_after_meal"],
         }
     ],
     "medications": [{"medication_name": "와파린"}],
@@ -27,6 +27,57 @@ def test_request_uses_glossary_field_names():
     request = AnalysisRequest.model_validate(VALID_REQUEST)
     assert request.supplements[0].dose_amount == 1000
     assert request.medications[0].medication_name == "와파린"
+
+
+def test_intake_times_must_match_dose_frequency():
+    """1일 3회인데 시각을 2개만 적으면 일정표를 만들 수 없다. GLOSSARY 3-1."""
+    payload = {
+        **VALID_REQUEST,
+        "supplements": [
+            {
+                **VALID_REQUEST["supplements"][0],
+                "dose_frequency": 3,
+                "intake_times": ["morning_after_meal", "noon_after_meal"],
+            }
+        ],
+    }
+    with pytest.raises(ValidationError):
+        AnalysisRequest.model_validate(payload)
+
+
+def test_schedule_covers_every_intake_time():
+    """1일 2회면 일정도 2줄이어야 한다."""
+    payload = {
+        **VALID_REQUEST,
+        "supplements": [
+            {
+                **VALID_REQUEST["supplements"][0],
+                "dose_frequency": 2,
+                "intake_times": ["wake_up", "evening_after_meal"],
+            }
+        ],
+    }
+    result = run_analysis(AnalysisRequest.model_validate(payload), provider=MockProvider())
+    slots = [item.time_slot.value for item in result.intake_schedule]
+    assert slots == ["wake_up", "evening_after_meal"]
+
+
+def test_probiotic_uses_cfu_unit():
+    """유산균은 무게가 아니라 균 수로 받는다. 100억 CFU -> 100 hundred_million_cfu."""
+    payload = {
+        **VALID_REQUEST,
+        "supplements": [
+            {
+                "supplement_name": "유산균 100억",
+                "dose_amount": 100,
+                "dose_unit": "hundred_million_cfu",
+                "dose_frequency": 1,
+                "intake_times": ["wake_up"],
+            }
+        ],
+    }
+    request = AnalysisRequest.model_validate(payload)
+    assert request.supplements[0].dose_unit.value == "hundred_million_cfu"
 
 
 def test_medications_are_optional():

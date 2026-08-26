@@ -7,7 +7,13 @@
  */
 
 import { useState, type FormEvent } from "react";
-import { DOSE_UNITS, TIME_SLOT_LABEL } from "@/constants/labels";
+import {
+  CFU_UNITS,
+  DOSE_UNITS,
+  DOSE_UNIT_LABEL,
+  TIME_SLOTS,
+  TIME_SLOT_LABEL,
+} from "@/constants/labels";
 import type {
   AnalysisRequest,
   DoseUnit,
@@ -21,16 +27,28 @@ import type {
 export const INPUT_STEPS = ["내 정보", "영양제", "복용 약"];
 const LAST_INPUT_STEP = INPUT_STEPS.length - 1;
 
+const DEFAULT_TIME: TimeSlot = "morning_after_meal";
+
 /** 행마다 새 객체를 만든다. 같은 참조를 여러 행이 공유하지 않도록. */
 const createSupplement = (): Supplement => ({
   supplementName: "",
   doseAmount: 1,
   doseUnit: "mg",
   doseFrequency: 1,
-  intakeTime: "after_meal",
+  intakeTimes: [DEFAULT_TIME],
 });
 
-/** 시연용 예시 값. 권장량이 아니라 화면을 빨리 채워보기 위한 것이다. */
+/**
+ * 1일 n회면 시각도 n개다 (백엔드가 개수를 검사한다).
+ * 횟수를 늘리면 뒤에 기본값을 채우고, 줄이면 뒤에서 잘라낸다.
+ */
+const resizeIntakeTimes = (times: TimeSlot[], frequency: number): TimeSlot[] =>
+  Array.from({ length: frequency }, (_, i) => times[i] ?? DEFAULT_TIME);
+
+/**
+ * 시연용 예시 값. 권장량이 아니라 화면을 빨리 채워보기 위한 것이다.
+ * 비타민 D + 와파린 은 실제로 상호작용 주의점이 뜨는 조합이라 골랐다.
+ */
 const DEMO_SUPPLEMENTS: Supplement[] = [
   {
     supplementName: "비타민 D 1000IU",
@@ -38,7 +56,7 @@ const DEMO_SUPPLEMENTS: Supplement[] = [
     doseAmount: 1000,
     doseUnit: "iu",
     doseFrequency: 1,
-    intakeTime: "with_meal",
+    intakeTimes: ["morning_after_meal"],
   },
   {
     supplementName: "오메가3 1000mg",
@@ -46,11 +64,13 @@ const DEMO_SUPPLEMENTS: Supplement[] = [
     doseAmount: 1000,
     doseUnit: "mg",
     doseFrequency: 2,
-    intakeTime: "after_meal",
+    intakeTimes: ["morning_after_meal", "evening_after_meal"],
   },
 ];
 
-const DEMO_MEDICATIONS: Medication[] = [{ medicationName: "와파린", ingredient: "와파린나트륨" }];
+const DEMO_MEDICATIONS: Medication[] = [
+  { medicationName: "와파린", ingredient: "와파린나트륨", intakeTimes: [] },
+];
 
 interface Props {
   step: number;
@@ -69,7 +89,24 @@ export function SupplementForm({ step, isLoading, onStepChange, onSubmit }: Prop
   const [medications, setMedications] = useState<Medication[]>([]);
 
   const updateSupplement = (index: number, patch: Partial<Supplement>) => {
-    setSupplements((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+    setSupplements((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const next = { ...item, ...patch };
+        // 횟수가 바뀌면 시각 칸 개수도 따라간다.
+        return { ...next, intakeTimes: resizeIntakeTimes(next.intakeTimes, next.doseFrequency) };
+      }),
+    );
+  };
+
+  const updateIntakeTime = (index: number, slotIndex: number, value: TimeSlot) => {
+    setSupplements((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? { ...item, intakeTimes: item.intakeTimes.map((t, j) => (j === slotIndex ? value : t)) }
+          : item,
+      ),
+    );
   };
 
   const removeSupplement = (index: number) => {
@@ -275,10 +312,16 @@ export function SupplementForm({ step, isLoading, onStepChange, onSubmit }: Prop
                   >
                     {DOSE_UNITS.map((unit) => (
                       <option key={unit} value={unit}>
-                        {unit}
+                        {DOSE_UNIT_LABEL[unit]}
                       </option>
                     ))}
                   </select>
+                  {CFU_UNITS.includes(item.doseUnit) && (
+                    <p className="field__hint">
+                      유산균은 무게보다 균 수가 기준입니다. 제품에 “100억 CFU” 로 적혀 있으면 100 +
+                      억 CFU 로 입력하세요. (1포 ≈ 1.5g, 1캡슐 ≈ 400~500mg 은 대부분 부형제입니다)
+                    </p>
+                  )}
                 </div>
 
                 <div className="field">
@@ -296,23 +339,33 @@ export function SupplementForm({ step, isLoading, onStepChange, onSubmit }: Prop
                   />
                 </div>
 
-                <div className="field">
-                  <label className="field__label" htmlFor={`supplement-intakeTime-${index}`}>
-                    섭취 시각
-                  </label>
-                  <select
-                    id={`supplement-intakeTime-${index}`}
-                    value={item.intakeTime}
-                    onChange={(e) =>
-                      updateSupplement(index, { intakeTime: e.target.value as TimeSlot })
-                    }
-                  >
-                    {Object.entries(TIME_SLOT_LABEL).map(([slot, label]) => (
-                      <option key={slot} value={slot}>
-                        {label}
-                      </option>
+                <div className="field field--wide">
+                  <span className="field__label">섭취 시각 ({item.doseFrequency}회)</span>
+                  <div className="time-grid">
+                    {item.intakeTimes.map((slot, slotIndex) => (
+                      <div className="field" key={slotIndex}>
+                        <label
+                          className="field__sublabel"
+                          htmlFor={`supplement-intakeTimes-${index}-${slotIndex}`}
+                        >
+                          {slotIndex + 1}회차
+                        </label>
+                        <select
+                          id={`supplement-intakeTimes-${index}-${slotIndex}`}
+                          value={slot}
+                          onChange={(e) =>
+                            updateIntakeTime(index, slotIndex, e.target.value as TimeSlot)
+                          }
+                        >
+                          {TIME_SLOTS.map((value) => (
+                            <option key={value} value={value}>
+                              {TIME_SLOT_LABEL[value]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     ))}
-                  </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -390,7 +443,9 @@ export function SupplementForm({ step, isLoading, onStepChange, onSubmit }: Prop
           <button
             type="button"
             className="btn-add"
-            onClick={() => setMedications((prev) => [...prev, { medicationName: "" }])}
+            onClick={() =>
+              setMedications((prev) => [...prev, { medicationName: "", intakeTimes: [] }])
+            }
           >
             + 약 추가
           </button>
