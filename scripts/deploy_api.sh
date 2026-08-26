@@ -33,6 +33,9 @@ else
   ARTIFACT_ARGS=(--resolve-s3)
 fi
 
+# Git Bash(MSYS)는 '/analyze' 같은 인자를 Windows 경로로 바꿔 LlmApiPath 를 망가뜨린다.
+# 이 인자만 변환에서 제외한다. Linux 에서는 아무 영향이 없다.
+MSYS2_ARG_CONV_EXCL='LlmApiPath=' \
 sam deploy \
   --stack-name "$STACK_NAME" \
   --region "$AWS_REGION" \
@@ -46,7 +49,7 @@ sam deploy \
     "LlmApiBaseUrl=${LLM_API_BASE_URL:-}" \
     "LlmApiPath=${LLM_API_PATH:-/analyze}" \
     "LlmApiKey=${LLM_API_KEY:-}" \
-    "LlmTimeoutSeconds=${LLM_TIMEOUT_SECONDS:-30}" >&2
+    "LlmTimeoutSeconds=${LLM_TIMEOUT_SECONDS:-45}" >&2
 
 echo "[deploy_api] 3/3 주소 확인" >&2
 API_URL="$(aws cloudformation describe-stacks \

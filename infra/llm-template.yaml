@@ -23,15 +23,16 @@ Parameters:
     Default: "8000"
   IntegrationTimeoutMillis:
     Type: Number
-    Default: 29000
+    Default: 40000
     MinValue: 50
     MaxValue: 120000
     Description: >-
-      기본 한도는 29000ms. 서비스 쿼터(L-E5AE38E3) 상향이 승인된 뒤에만 더 큰 값을 쓸 수 있다.
+      계정 쿼터(L-E5AE38E3)는 120000ms 로 상향 승인됨. 다만 백엔드 httpx(45초)보다
+      길게 두면 의미가 없으므로 40000ms 로 둔다.
 
 Globals:
   Function:
-    Runtime: python3.11
+    Runtime: python3.13
     Architectures: [x86_64]
 
 Resources:
