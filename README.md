@@ -50,6 +50,7 @@ python scripts/check_glossary.py
 | [docs/TECH_SPEC.md](./docs/TECH_SPEC.md) | 스택, 폴더 구조, 데이터 흐름, 안전 규칙 |
 | [docs/API.md](./docs/API.md) | 우리 백엔드 엔드포인트 |
 | [docs/LLM_CONTRACT.md](./docs/LLM_CONTRACT.md) | 🔌 **AWS 담당자용** — Lambda/API 가 지켜야 할 입출력 계약 |
+| [docs/DEPLOY.md](./docs/DEPLOY.md) | 🚀 프론트엔드 S3 배포 순서 (백엔드는 별도 컴퓨트 필요) |
 
 ---
 

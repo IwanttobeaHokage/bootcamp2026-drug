@@ -5,5 +5,8 @@ httpx>=0.27
 python-dotenv>=1.0
 pytest>=8.3
 
+# Lambda 배포용 어댑터 (infra/template.yaml). 로컬 개발에는 쓰이지 않는다.
+mangum>=0.19
+
 # LLM_PROVIDER=lambda 로 쓸 때만 필요 (AWS 담당자가 Lambda 로 붙일 경우)
 # boto3>=1.35

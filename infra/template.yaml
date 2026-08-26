@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: bootcamp2026-drug backend (FastAPI on Lambda + Function URL)
+
+# 배포: scripts/deploy_api.sh  또는  .github/workflows/deploy.yml
+# 설명: docs/DEPLOY.md
+
+Parameters:
+  CorsOrigins:
+    Type: String
+    Description: 프론트엔드 주소. 콤마로 여러 개. 예 https://d3trbdzir4jwzb.cloudfront.net
+  LlmProvider:
+    Type: String
+    Default: mock
+    AllowedValues: [mock, http, lambda]
+    Description: 외부 AWS LLM 연결 방식. 주소를 못 받았으면 mock 으로 둔다.
+  LlmApiBaseUrl:
+    Type: String
+    Default: ""
+  LlmApiPath:
+    Type: String
+    Default: /analyze
+  LlmApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+  LlmTimeoutSeconds:
+    Type: String
+    Default: "30"
+
+Globals:
+  Function:
+    Runtime: python3.11
+    Architectures: [x86_64]
+    MemorySize: 512
+    # LLM_TIMEOUT_SECONDS(기본 30) 보다 길어야 502 대신 제대로 된 오류가 나간다.
+    Timeout: 40
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend
+      Handler: app.lambda_handler.handler
+      Description: 영양제 분석 API
+      Environment:
+        Variables:
+          CORS_ORIGINS: !Ref CorsOrigins
+          LLM_PROVIDER: !Ref LlmProvider
+          LLM_API_BASE_URL: !Ref LlmApiBaseUrl
+          LLM_API_PATH: !Ref LlmApiPath
+          LLM_API_KEY: !Ref LlmApiKey
+          LLM_TIMEOUT_SECONDS: !Ref LlmTimeoutSeconds
+      FunctionUrlConfig:
+        # CORS 는 FastAPI 의 CORSMiddleware 가 처리한다.
+        # 여기서 또 설정하면 헤더가 중복돼서 브라우저가 거부한다.
+        AuthType: NONE
+
+  # 건강정보는 로그에 남기지 않는다(CLAUDE.md 6절). 보존 기간도 짧게 둔다.
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiFunction}"
+      RetentionInDays: 14
+
+Outputs:
+  ApiUrl:
+    Description: 프론트 빌드의 VITE_API_BASE_URL 에 넣을 주소
+    Value: !GetAtt ApiFunctionUrl.FunctionUrl
+  FunctionName:
+    Value: !Ref ApiFunction
