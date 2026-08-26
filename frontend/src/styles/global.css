@@ -5,43 +5,50 @@
  */
 
 :root {
-  --bg: #f6f7f9;
+  --bg: #f3faec;
   --surface: #ffffff;
-  --surface-muted: #f1f3f6;
-  --border: #dfe3e8;
-  --text: #1b1f24;
-  --text-muted: #5b6572;
+  --surface-muted: #eff8e4;
+  --border: #dcecc9;
+  --text: #1d2718;
+  --text-muted: #5d6b54;
 
-  --accent: #2f6f4f;
-  --accent-soft: #e7f2eb;
+  /* 밝은 연두 (알약 느낌) */
+  --accent: #7ac143;
+  --accent-strong: #63a833;
+  --accent-soft: #eaf7d8;
+  --accent-contrast: #ffffff;
 
-  --risk-high: #b3261e;
-  --risk-high-soft: #fdecea;
-  --risk-moderate: #9a6400;
-  --risk-moderate-soft: #fdf3e2;
-  --risk-low: #37618e;
-  --risk-low-soft: #ebf2fa;
+  --risk-high: #c2352b;
+  --risk-high-soft: #fdeceb;
+  --risk-moderate: #a06a12;
+  --risk-moderate-soft: #fdf4e3;
+  --risk-low: #3d7ab8;
+  --risk-low-soft: #ecf4fb;
 
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 22px;
+  --radius-sm: 16px;
+  --radius-pill: 999px;
   --gap: 16px;
-  --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 4px 12px rgb(16 24 40 / 4%);
+  --shadow: 0 1px 2px rgb(60 90 40 / 6%), 0 6px 18px rgb(60 90 40 / 8%);
 
-  --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system,
-    "Segoe UI", sans-serif;
+  --font:
+    "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui,
+    -apple-system, "Segoe UI", sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14171a;
-    --surface: #1c2024;
-    --surface-muted: #23282d;
-    --border: #333a41;
-    --text: #e8eaed;
-    --text-muted: #a2acb8;
+    --bg: #141a11;
+    --surface: #1c2318;
+    --surface-muted: #232c1e;
+    --border: #37432f;
+    --text: #e9efe4;
+    --text-muted: #a6b39c;
 
-    --accent: #7fc9a2;
-    --accent-soft: #1e2f27;
+    --accent: #a5dd6c;
+    --accent-strong: #b9e888;
+    --accent-soft: #253019;
+    --accent-contrast: #16200e;
 
     --risk-high: #f2b8b5;
     --risk-high-soft: #33201f;
@@ -50,7 +57,7 @@
     --risk-low: #a8c7ea;
     --risk-low-soft: #1e2732;
 
-    --shadow: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow: 0 1px 2px rgb(0 0 0 / 45%);
   }
 }
 
@@ -190,17 +197,27 @@ button:focus-visible {
 
 button {
   font: inherit;
-  border-radius: var(--radius-sm);
+  /* 알약처럼 완전히 둥근 버튼 */
+  border-radius: var(--radius-pill);
   cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .btn-add {
   width: 100%;
   padding: 10px;
-  border: 1px dashed var(--border);
+  border: 1.5px dashed var(--accent);
   background: transparent;
-  color: var(--accent);
-  font-weight: 600;
+  color: var(--accent-strong);
+  font-weight: 700;
 }
 
 .btn-add:hover {
@@ -230,9 +247,14 @@ button {
   padding: 13px;
   border: none;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
   font-size: 1rem;
   font-weight: 700;
+  box-shadow: 0 2px 8px rgb(122 193 67 / 35%);
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: var(--accent-strong);
 }
 
 .btn-submit:disabled {
@@ -242,7 +264,7 @@ button {
 
 @media (prefers-color-scheme: dark) {
   .btn-submit {
-    color: #10231a;
+    box-shadow: none;
   }
 }
 
